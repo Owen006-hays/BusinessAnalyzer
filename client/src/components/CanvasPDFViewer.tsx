@@ -187,11 +187,11 @@ const CanvasPDFViewer: React.FC = () => {
         textLayerDiv.style.right = '0';
         textLayerDiv.style.bottom = '0';
         textLayerDiv.style.overflow = 'hidden';
-        textLayerDiv.style.opacity = '1'; // 完全な不透明度に変更
+        textLayerDiv.style.opacity = '1';
         textLayerDiv.style.lineHeight = '1.0';
         textLayerDiv.style.width = `${viewport.width}px`;
         textLayerDiv.style.height = `${viewport.height}px`;
-        textLayerDiv.style.pointerEvents = 'auto'; // ポインターイベントを許可
+        textLayerDiv.style.pointerEvents = 'auto';
         
         // キャンバスの親要素に追加（同じ位置に配置）
         const canvasWrapper = canvas.parentNode as HTMLElement;
@@ -203,6 +203,7 @@ const CanvasPDFViewer: React.FC = () => {
           
           // テキストレイヤーを配置
           const textLayerContainer = document.createElement('div');
+          textLayerContainer.className = 'text-layer-container';
           textLayerContainer.style.position = 'absolute';
           textLayerContainer.style.left = `${canvas.offsetLeft}px`;
           textLayerContainer.style.top = `${canvas.offsetTop}px`;
@@ -211,9 +212,171 @@ const CanvasPDFViewer: React.FC = () => {
           textLayerContainer.appendChild(textLayerDiv);
           (canvasWrapper as HTMLElement).appendChild(textLayerContainer);
           
+          // ドラッグセレクト用の変数
+          let isSelecting = false;
+          let selectionStart: { x: number, y: number } | null = null;
+          let selectionRect: HTMLElement | null = null;
+          let selectedElements: HTMLElement[] = [];
+          
+          // 選択範囲を視覚的に表示するための要素
+          const createSelectionRect = () => {
+            const rect = document.createElement('div');
+            rect.className = 'selection-rect';
+            rect.style.position = 'absolute';
+            rect.style.border = '1px dashed rgba(66, 153, 225, 0.8)';
+            rect.style.backgroundColor = 'rgba(66, 153, 225, 0.1)';
+            rect.style.pointerEvents = 'none';
+            rect.style.zIndex = '10';
+            return rect;
+          };
+          
+          // マウスドラッグ選択のイベントリスナー
+          textLayerContainer.addEventListener('mousedown', (e) => {
+            // 左クリックのみを処理
+            if (e.button !== 0) return;
+            
+            // 既存の選択をクリア
+            if (selectionRect && selectionRect.parentNode) {
+              selectionRect.parentNode.removeChild(selectionRect);
+            }
+            
+            // 前回の選択テキスト要素をリセット
+            selectedElements.forEach(el => {
+              el.style.backgroundColor = '';
+              el.style.opacity = '0';
+            });
+            selectedElements = [];
+            
+            isSelecting = true;
+            selectionStart = {
+              x: e.clientX,
+              y: e.clientY
+            };
+            
+            // 新しい選択範囲を作成
+            selectionRect = createSelectionRect();
+            selectionRect.style.left = `${e.clientX - textLayerContainer.getBoundingClientRect().left}px`;
+            selectionRect.style.top = `${e.clientY - textLayerContainer.getBoundingClientRect().top}px`;
+            selectionRect.style.width = '0px';
+            selectionRect.style.height = '0px';
+            textLayerContainer.appendChild(selectionRect);
+            
+            e.preventDefault();
+          });
+          
+          textLayerContainer.addEventListener('mousemove', (e) => {
+            if (!isSelecting || !selectionStart || !selectionRect) return;
+            
+            const currentX = e.clientX;
+            const currentY = e.clientY;
+            const containerRect = textLayerContainer.getBoundingClientRect();
+            
+            // 選択範囲の位置とサイズを計算
+            const left = Math.min(selectionStart.x, currentX) - containerRect.left;
+            const top = Math.min(selectionStart.y, currentY) - containerRect.top;
+            const width = Math.abs(currentX - selectionStart.x);
+            const height = Math.abs(currentY - selectionStart.y);
+            
+            // 選択範囲を更新
+            selectionRect.style.left = `${left}px`;
+            selectionRect.style.top = `${top}px`;
+            selectionRect.style.width = `${width}px`;
+            selectionRect.style.height = `${height}px`;
+            
+            // 選択範囲内のテキスト要素をハイライト
+            const selectionBounds = {
+              left,
+              top,
+              right: left + width,
+              bottom: top + height
+            };
+            
+            Array.from(textLayerDiv.children).forEach((child) => {
+              const el = child as HTMLElement;
+              const elLeft = parseFloat(el.style.left);
+              const elTop = parseFloat(el.style.top);
+              const elRight = elLeft + el.offsetWidth;
+              const elBottom = elTop + el.offsetHeight;
+              
+              // 範囲内かチェック
+              const overlaps = !(
+                elRight < selectionBounds.left ||
+                elLeft > selectionBounds.right ||
+                elBottom < selectionBounds.top ||
+                elTop > selectionBounds.bottom
+              );
+              
+              if (overlaps) {
+                el.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
+                el.style.opacity = '0.8';
+                if (!selectedElements.includes(el)) {
+                  selectedElements.push(el);
+                }
+              } else {
+                if (selectedElements.includes(el)) {
+                  el.style.backgroundColor = '';
+                  el.style.opacity = '0';
+                  selectedElements = selectedElements.filter(item => item !== el);
+                }
+              }
+            });
+          });
+          
+          textLayerContainer.addEventListener('mouseup', (e) => {
+            if (!isSelecting) return;
+            
+            isSelecting = false;
+            
+            // 選択したテキストを処理
+            if (selectedElements.length > 0) {
+              // 選択テキストをコピー可能にする
+              const selectedTexts = selectedElements.map(el => el.textContent).join(' ');
+              
+              // 選択されたテキストを通知
+              const tooltip = document.createElement('div');
+              tooltip.className = 'selection-tooltip';
+              tooltip.textContent = '選択完了！ Ctrl+Cでコピーできます';
+              tooltip.style.position = 'absolute';
+              tooltip.style.left = `${e.clientX - textLayerContainer.getBoundingClientRect().left}px`;
+              tooltip.style.top = `${e.clientY - textLayerContainer.getBoundingClientRect().top - 30}px`;
+              tooltip.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+              tooltip.style.color = 'white';
+              tooltip.style.padding = '5px 10px';
+              tooltip.style.borderRadius = '4px';
+              tooltip.style.fontSize = '12px';
+              tooltip.style.zIndex = '100';
+              tooltip.style.pointerEvents = 'none';
+              textLayerContainer.appendChild(tooltip);
+              
+              // 選択のフィードバックを表示
+              console.log('選択されたテキスト:', selectedTexts);
+              
+              // 選択済みテキストのスタイル維持
+              selectedElements.forEach(el => {
+                el.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
+                el.style.opacity = '0.8';
+              });
+              
+              // 2秒後にツールチップを削除
+              setTimeout(() => {
+                if (tooltip.parentNode) {
+                  tooltip.parentNode.removeChild(tooltip);
+                }
+              }, 2000);
+            }
+            
+            // 選択モードを終了
+            selectionStart = null;
+            
+            // 選択範囲の表示を削除
+            if (selectionRect && selectionRect.parentNode) {
+              selectionRect.parentNode.removeChild(selectionRect);
+              selectionRect = null;
+            }
+          });
+          
           // テキストアイテムを配置
           const fontScale = 1.0;
-          const EXPANDED_DIVS_PADDING = 2; // px
           
           // テキストコンテンツのアイテムを処理
           for (const item of textContent.items) {
@@ -229,54 +392,38 @@ const CanvasPDFViewer: React.FC = () => {
             textItem.style.pointerEvents = 'auto';
             textItem.style.opacity = '0';
             textItem.style.color = '#000';
+            textItem.dataset.text = item.str; // データ属性にテキストを保存
             
             // 要素をレイヤーに追加
             textLayerDiv.appendChild(textItem);
             
             // PDF座標からWebページ座標に変換して配置
-            const transform = viewport.transform;
+            // より正確な位置計算
             const [fontHeight, fontAscent] = item.transform.slice(3, 5);
-            
-            // スタイルを設定
             const left = item.transform[4] * scale;
-            const top = item.transform[5] * scale - fontAscent;
+            const top = item.transform[5] * scale - fontAscent * scale;
+            
             textItem.style.left = `${left}px`;
             textItem.style.top = `${top}px`;
             textItem.style.fontSize = `${fontHeight * scale}px`;
             textItem.style.fontFamily = 'sans-serif';
-            textItem.style.transform = `scaleX(${1})`; 
-            textItem.style.color = '#000'; // 選択できるように通常の文字色を設定
+            textItem.style.transform = `scaleX(${1})`;
+            textItem.style.width = 'auto'; // 幅を自動調整
+            textItem.style.height = 'auto'; // 高さを自動調整
             
-            // ハイライト効果を追加
+            // 単一テキスト要素のホバー効果
             textItem.addEventListener('mouseenter', () => {
-              textItem.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
-              textItem.style.opacity = '0.8'; // ホバー時に見えるように
-              textItem.style.color = 'black';
+              if (!isSelecting) {
+                textItem.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
+                textItem.style.opacity = '0.8';
+              }
             });
             
             textItem.addEventListener('mouseleave', () => {
-              textItem.style.backgroundColor = 'transparent';
-              textItem.style.opacity = '0'; // 元に戻す
-            });
-            
-            // 選択イベントをリッスン
-            textItem.addEventListener('mousedown', () => {
-              // 選択開始時にツールチップを表示
-              const tooltip = document.createElement('div');
-              tooltip.className = 'absolute px-2 py-1 bg-black text-white text-xs rounded z-50';
-              tooltip.style.left = `${parseFloat(textItem.style.left) + 20}px`;
-              tooltip.style.top = `${parseFloat(textItem.style.top) - 25}px`;
-              tooltip.textContent = '選択中...Ctrl+Cでコピー';
-              tooltip.style.opacity = '0.8';
-              tooltip.style.pointerEvents = 'none';
-              textLayerDiv.appendChild(tooltip);
-              
-              // 5秒後に消す
-              setTimeout(() => {
-                if (tooltip.parentNode) {
-                  tooltip.parentNode.removeChild(tooltip);
-                }
-              }, 3000);
+              if (!isSelecting && !selectedElements.includes(textItem)) {
+                textItem.style.backgroundColor = 'transparent';
+                textItem.style.opacity = '0';
+              }
             });
           }
         }
