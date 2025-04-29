@@ -22,7 +22,6 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
   const [content, setContent] = useState(box.content);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [resizing, setResizing] = useState(false);
-  const textBoxRef = useRef<HTMLDivElement>(null);
   const contentEditableRef = useRef<HTMLDivElement>(null);
   
   // Initialize with box dimensions
@@ -31,8 +30,8 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
     height: box.height || 'auto',
   });
 
-  // Set up drag
-  const [{ isDragging }, drag, preview] = useDrag(() => ({
+  // Set up the drag handler
+  const [{ isDragging }, dragRef] = useDrag(() => ({
     type: "TEXT_BOX",
     item: { id: box.id, x: box.x, y: box.y },
     collect: (monitor) => ({
@@ -64,8 +63,9 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
     const startX = e.clientX;
     const startY = e.clientY;
     const startWidth = dimensions.width;
+    const element = e.currentTarget.parentElement;
     const startHeight = dimensions.height === 'auto' ? 
-      textBoxRef.current?.offsetHeight || 0 : 
+      element?.offsetHeight || 0 : 
       dimensions.height as number;
     
     const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -94,7 +94,7 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
   };
 
   // Double click to edit
-  const handleDoubleClick = (e: React.MouseEvent) => {
+  const handleDoubleClick = () => {
     if (!editing) {
       setEditing(true);
       // Focus after render
@@ -133,27 +133,24 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
     deleteTextBox(box.id);
   };
 
-  // When component is mounted, adjust the height if needed
-  useEffect(() => {
-    if (textBoxRef.current && dimensions.height === 'auto') {
-      const height = textBoxRef.current.offsetHeight;
-      setDimensions(prev => ({ ...prev, height }));
-    }
-  }, []);
-
   // Update local content when box.content changes
   useEffect(() => {
     setContent(box.content);
   }, [box.content]);
 
-  // Keyboard event listener for delete
+  // Handle keyboard events with a simpler approach
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && 
-          textBoxRef.current && 
-          textBoxRef.current.contains(document.activeElement) &&
-          !editing) {
-        handleDelete();
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !editing) {
+        // Check if the active element is within a child of our textbox
+        const active = document.activeElement;
+        const textBoxElements = document.querySelectorAll(`[data-id="${box.id}"]`);
+        for (const el of Array.from(textBoxElements)) {
+          if (el.contains(active)) {
+            handleDelete();
+            break;
+          }
+        }
       }
     };
 
@@ -161,7 +158,7 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [editing]);
+  }, [editing, box.id, deleteTextBox]);
 
   // Dynamically determine background color based on box.color
   const getBgColorClass = () => {
@@ -177,13 +174,9 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
 
   return (
     <div
-      ref={(node) => {
-        if (node) {
-          drag(preview(node));
-        }
-        textBoxRef.current = node;
-      }}
-      className={`absolute ${getBgColorClass()} border rounded-md p-3 shadow-sm cursor-move transition-shadow duration-200 hover:shadow-md ${
+      ref={dragRef}
+      data-id={box.id}
+      className={`absolute text-box ${getBgColorClass()} border rounded-md p-3 shadow-sm cursor-move transition-shadow duration-200 hover:shadow-md ${
         isDragging ? 'opacity-50' : ''
       } ${resizing ? 'select-none' : ''}`}
       style={{
