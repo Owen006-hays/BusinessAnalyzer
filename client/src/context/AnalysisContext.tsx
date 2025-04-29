@@ -145,52 +145,74 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
   
   // 新機能: テンプレートの特定ゾーンにテキストボックスを追加
   const addTextBoxToZone = useCallback((content: string, zone: string) => {
-    if (!canvasRef.current || !currentTemplate) return;
-    
-    // ゾーン要素を検索
-    const zoneElement = canvasRef.current.querySelector(`[data-zone="${zone}"]`) as HTMLElement;
-    if (!zoneElement) return;
-    
-    // ゾーンの位置を取得
-    const zoneRect = zoneElement.getBoundingClientRect();
-    const canvasRect = canvasRef.current.getBoundingClientRect();
-    
-    // ゾーン内の相対位置を計算 (中央に配置)
-    const x = (zoneRect.left - canvasRect.left) + 20; // 左端から少し余白を取る
-    const y = (zoneRect.top - canvasRect.top) + 20;  // 上端から少し余白を取る
-    
-    // テンプレートに応じた色を設定
-    let color = "white";
-    switch (zone) {
-      case "strengths": color = "blue"; break;
-      case "weaknesses": color = "red"; break;
-      case "opportunities": color = "green"; break;
-      case "threats": color = "yellow"; break;
-      case "company": color = "blue"; break;
-      case "customer": color = "green"; break;
-      case "competitor": color = "yellow"; break;
-      case "product": color = "purple"; break;
-      case "price": color = "purple"; break;
-      case "place": color = "blue"; break;
-      case "promotion": color = "green"; break;
-      case "political": color = "purple"; break;
-      case "economic": color = "blue"; break;
-      case "social": color = "green"; break;
-      case "technological": color = "blue"; break;
+    if (!currentTemplate) {
+      // テンプレートが選択されていない場合は、通常のテキストボックスとして追加
+      addTextBox(content, 100, 100);
+      return;
     }
     
-    // テキストボックスを追加
-    createTextBoxMutation.mutate({
-      content,
-      x,
-      y,
-      width: Math.min(zoneRect.width - 50, 200), // ゾーン幅に合わせる (余白を考慮)
-      height: null,
-      color,
-      analysisId,
-      zone, // ゾーン情報を保存
-    });
-  }, [analysisId, createTextBoxMutation, canvasRef, currentTemplate]);
+    // まずテンプレートを選択する（まだ選択されていない場合）
+    if (currentTemplate !== 'swot' && currentTemplate !== '4p' && 
+        currentTemplate !== '3c' && currentTemplate !== 'pest') {
+      setCurrentTemplate('swot');
+    }
+    
+    // 少し遅延を入れて、テンプレートが描画された後にゾーン検索を行う
+    setTimeout(() => {
+      if (!canvasRef.current) return;
+      
+      // ゾーン要素を検索
+      const zoneElement = canvasRef.current.querySelector(`[data-zone="${zone}"]`) as HTMLElement;
+      
+      // ゾーンが見つからない場合はデフォルトの位置に配置
+      let x = 100;
+      let y = 100;
+      let zoneWidth = 180;
+      
+      if (zoneElement) {
+        // ゾーンの位置を取得
+        const zoneRect = zoneElement.getBoundingClientRect();
+        const canvasRect = canvasRef.current.getBoundingClientRect();
+        
+        // ゾーン内の相対位置を計算 (中央に配置)
+        x = (zoneRect.left - canvasRect.left) + 20; // 左端から少し余白を取る
+        y = (zoneRect.top - canvasRect.top) + 20;  // 上端から少し余白を取る
+        zoneWidth = zoneRect.width;
+      }
+      
+      // テンプレートに応じた色を設定
+      let color = "white";
+      switch (zone) {
+        case "strengths": color = "blue"; break;
+        case "weaknesses": color = "red"; break;
+        case "opportunities": color = "green"; break;
+        case "threats": color = "yellow"; break;
+        case "company": color = "blue"; break;
+        case "customer": color = "green"; break;
+        case "competitor": color = "yellow"; break;
+        case "product": color = "purple"; break;
+        case "price": color = "purple"; break;
+        case "place": color = "blue"; break;
+        case "promotion": color = "green"; break;
+        case "political": color = "purple"; break;
+        case "economic": color = "blue"; break;
+        case "social": color = "green"; break;
+        case "technological": color = "blue"; break;
+      }
+      
+      // テキストボックスを追加
+      createTextBoxMutation.mutate({
+        content,
+        x,
+        y,
+        width: Math.min(zoneWidth - 50, 200), // ゾーン幅に合わせる (余白を考慮)
+        height: null,
+        color,
+        analysisId,
+        zone, // ゾーン情報を保存
+      });
+    }, 100); // 100ms遅延
+  }, [analysisId, createTextBoxMutation, canvasRef, currentTemplate, setCurrentTemplate, addTextBox]);
   
   // テンプレートごとのゾーン名を取得
   const getZonesForTemplate = useCallback((template: string | null): string[] => {

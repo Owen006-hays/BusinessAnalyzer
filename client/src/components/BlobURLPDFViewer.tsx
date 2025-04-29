@@ -246,7 +246,7 @@ const BlobURLPDFViewer: React.FC = () => {
       {/* ゾーンセレクター - テキスト選択されて「エリアを選択」がクリックされたときに表示 */}
       {showZoneSelector && selectedText && (
         <div
-          className="absolute z-30"
+          className="zone-selector-container absolute z-30"
           style={{
             top: `${Math.max(copyPosition.y, 10)}px`,
             left: `${Math.min(copyPosition.x - 150, viewerRef.current?.clientWidth || window.innerWidth - 320)}px`,

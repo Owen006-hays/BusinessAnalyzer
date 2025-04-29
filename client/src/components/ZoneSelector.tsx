@@ -109,7 +109,7 @@ const ZoneSelector: React.FC<ZoneSelectorProps> = ({ text, onClose }) => {
   };
   
   return (
-    <div className="absolute z-50 bg-white shadow-xl rounded-lg p-4 w-80 border border-gray-200">
+    <div className="zone-selector-wrapper absolute z-50 bg-white shadow-xl rounded-lg p-4 w-80 border border-gray-200">
       <div className="flex justify-between items-center mb-3">
         <h3 className="text-lg font-semibold">テキストを追加</h3>
         <Button
@@ -137,7 +137,7 @@ const ZoneSelector: React.FC<ZoneSelectorProps> = ({ text, onClose }) => {
               key={template}
               variant={currentTemplate === template ? "default" : "outline"}
               size="sm"
-              className={currentTemplate === template ? "bg-primary text-white" : ""}
+              className={`${currentTemplate === template ? "bg-primary text-white font-medium shadow-md" : "border-gray-300 hover:bg-gray-50"} transition-all duration-200`}
               onClick={() => handleTemplateChange(template)}
             >
               {getTemplateLabel(template)}
@@ -153,7 +153,7 @@ const ZoneSelector: React.FC<ZoneSelectorProps> = ({ text, onClose }) => {
             <Button
               key={zone}
               variant="outline"
-              className={`w-full justify-start ${getZoneColorClass(zone)}`}
+              className={`w-full justify-start hover:bg-opacity-90 hover:shadow-sm hover:transform hover:scale-[1.01] transition-all duration-150 ${getZoneColorClass(zone)}`}
               onClick={() => handleAddToZone(zone)}
             >
               <CopyCheck className="mr-2 h-4 w-4" />
