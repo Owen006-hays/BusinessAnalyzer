@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { useDrag } from "react-dnd";
 import { TextBox as TextBoxType } from "@shared/schema";
 import { useAnalysisContext } from "@/context/AnalysisContext";
 import ColorPicker from "@/components/ColorPicker";
@@ -23,21 +22,15 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [resizing, setResizing] = useState(false);
   const contentEditableRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState({ x: box.x, y: box.y });
   
   // Initialize with box dimensions
   const [dimensions, setDimensions] = useState({
     width: box.width || 200,
     height: box.height || 'auto',
   });
-
-  // Set up the drag handler
-  const [{ isDragging }, dragRef] = useDrag(() => ({
-    type: "TEXT_BOX",
-    item: { id: box.id, x: box.x, y: box.y },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
-  }), [box.id, box.x, box.y]);
 
   // Handle color change
   const handleColorChange = (color: string) => {
@@ -163,6 +156,124 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
     }
   };
 
+  // Custom drag handler implementation
+  useEffect(() => {
+    const element = dragRef.current;
+    if (!element) return;
+    
+    const handleMouseDown = (e: MouseEvent) => {
+      // Prevent drag when clicking on resize handle or dropdown menu
+      const target = e.target as HTMLElement;
+      if (
+        target.closest(".resize-handle") || 
+        target.closest(".menu-trigger") ||
+        editing
+      ) {
+        return;
+      }
+      
+      e.preventDefault();
+      setIsDragging(true);
+      
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startPosX = position.x;
+      const startPosY = position.y;
+      
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const dx = moveEvent.clientX - startX;
+        const dy = moveEvent.clientY - startY;
+        
+        const newX = startPosX + dx;
+        const newY = startPosY + dy;
+        
+        setPosition({ x: newX, y: newY });
+        // リアルタイムでスタイルを更新
+        element.style.left = `${newX}px`;
+        element.style.top = `${newY}px`;
+      };
+      
+      const handleMouseUp = () => {
+        setIsDragging(false);
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        
+        // 位置を更新してサーバーに保存
+        updateTextBox(box.id, { 
+          x: position.x,
+          y: position.y
+        });
+      };
+      
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    };
+    
+    // TouchEvent handlers for mobile
+    const handleTouchStart = (e: TouchEvent) => {
+      // Prevent drag when touching resize handle or dropdown menu
+      const target = e.target as HTMLElement;
+      if (
+        target.closest(".resize-handle") || 
+        target.closest(".menu-trigger") ||
+        editing
+      ) {
+        return;
+      }
+      
+      const touch = e.touches[0];
+      const startX = touch.clientX;
+      const startY = touch.clientY;
+      const startPosX = position.x;
+      const startPosY = position.y;
+      
+      setIsDragging(true);
+      
+      const handleTouchMove = (moveEvent: TouchEvent) => {
+        moveEvent.preventDefault(); // Prevent scrolling while dragging
+        const touch = moveEvent.touches[0];
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+        
+        const newX = startPosX + dx;
+        const newY = startPosY + dy;
+        
+        setPosition({ x: newX, y: newY });
+        // リアルタイムでスタイルを更新
+        element.style.left = `${newX}px`;
+        element.style.top = `${newY}px`;
+      };
+      
+      const handleTouchEnd = () => {
+        setIsDragging(false);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+        
+        // 位置を更新してサーバーに保存
+        updateTextBox(box.id, { 
+          x: position.x,
+          y: position.y
+        });
+      };
+      
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd);
+    };
+    
+    element.addEventListener('mousedown', handleMouseDown);
+    element.addEventListener('touchstart', handleTouchStart);
+    
+    return () => {
+      element.removeEventListener('mousedown', handleMouseDown);
+      element.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, [box.id, editing, position, updateTextBox]);
+  
+  // Update local state when box positions changes
+  useEffect(() => {
+    setPosition({ x: box.x, y: box.y });
+  }, [box.x, box.y]);
+  
   // Update local content when box.content changes
   useEffect(() => {
     setContent(box.content);
@@ -239,8 +350,8 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
         isDragging ? 'opacity-50' : ''
       } ${resizing ? 'select-none' : ''}`}
       style={{
-        left: `${box.x}px`,
-        top: `${box.y}px`,
+        left: `${position.x}px`,
+        top: `${position.y}px`,
         width: `${dimensions.width}px`,
         height: dimensions.height === 'auto' ? 'auto' : `${dimensions.height}px`,
         zIndex: isDragging ? 1000 : 1
@@ -269,7 +380,7 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
 
       {/* Resize handle */}
       <div
-        className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize opacity-50 md:opacity-0 group-hover:opacity-100 hover:opacity-100 touch-manipulation"
+        className="resize-handle absolute bottom-0 right-0 w-6 h-6 cursor-se-resize opacity-50 md:opacity-0 group-hover:opacity-100 hover:opacity-100 touch-manipulation"
         onMouseDown={handleResizeMouseDown}
         onTouchStart={(e) => {
           e.preventDefault();
@@ -329,7 +440,7 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
       </div>
 
       {/* Menu trigger */}
-      <div className="absolute top-1 right-1 opacity-50 md:opacity-0 hover:opacity-100 group-hover:opacity-100">
+      <div className="menu-trigger absolute top-1 right-1 opacity-50 md:opacity-0 hover:opacity-100 group-hover:opacity-100">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="h-8 w-8 rounded-full bg-white bg-opacity-70 flex items-center justify-center hover:bg-opacity-100">
