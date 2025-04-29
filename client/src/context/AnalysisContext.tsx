@@ -139,6 +139,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       height: null,
       color: "white",
       analysisId,
+      zone: null, // zoneプロパティを追加
     });
   }, [analysisId, createTextBoxMutation]);
   

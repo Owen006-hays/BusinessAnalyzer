@@ -1,19 +1,30 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAnalysisContext } from "@/context/AnalysisContext";
 import { Button } from "@/components/ui/button";
-import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Copy } from "lucide-react";
+import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Copy, ListFilter } from "lucide-react";
+import ZoneSelector from "@/components/ZoneSelector";
 
 /**
  * シンプルなPDFビューワーコンポーネント
  * PDFファイルや画像ファイルをブラウザのネイティブAPIを使って表示します
  */
 const BlobURLPDFViewer: React.FC = () => {
-  const { pdfFile, setPdfFile, imageFile, setImageFile, addTextBox } = useAnalysisContext();
+  const { 
+    pdfFile, 
+    setPdfFile, 
+    imageFile, 
+    setImageFile, 
+    addTextBox,
+    currentTemplate,
+    setCurrentTemplate 
+  } = useAnalysisContext();
+  
   const [pdfURL, setPdfURL] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedText, setSelectedText] = useState<string | null>(null);
   const [showCopyButton, setShowCopyButton] = useState(false);
+  const [showZoneSelector, setShowZoneSelector] = useState(false);
   const [copyPosition, setCopyPosition] = useState({ x: 0, y: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -157,23 +168,73 @@ const BlobURLPDFViewer: React.FC = () => {
       window.getSelection()?.removeAllRanges();
     }
   };
+  
+  // ゾーンセレクターを表示
+  const handleShowZoneSelector = () => {
+    if (selectedText) {
+      // ゾーンセレクターを表示する前に、コピーボタンを非表示にする
+      setShowCopyButton(false);
+      setShowZoneSelector(true);
+      
+      // テンプレートが選択されていない場合は、デフォルトでSWOTを設定
+      if (!currentTemplate) {
+        setCurrentTemplate("swot");
+      }
+    }
+  };
+  
+  // ゾーンセレクターを閉じる
+  const handleCloseZoneSelector = () => {
+    setShowZoneSelector(false);
+    // 選択をクリア
+    window.getSelection()?.removeAllRanges();
+    setSelectedText(null);
+  };
 
   return (
     <section className="md:w-1/2 w-full md:h-full h-screen bg-white overflow-hidden flex flex-col" ref={viewerRef}>
       {/* コピーボタン - テキスト選択時のみ表示 */}
       {showCopyButton && selectedText && (
-        <Button
-          size="sm"
-          className="absolute z-20 bg-primary text-white hover:bg-primary-light"
+        <div
+          className="absolute z-20 flex space-x-2"
           style={{
             top: `${Math.max(copyPosition.y - 40, 10)}px`,
-            left: `${Math.min(copyPosition.x, viewerRef.current?.clientWidth || window.innerWidth - 120)}px`,
+            left: `${Math.min(copyPosition.x - 60, viewerRef.current?.clientWidth || window.innerWidth - 240)}px`,
           }}
-          onClick={handleCopyToCanvas}
         >
-          <Copy className="mr-1 h-4 w-4" />
-          キャンバスに追加
-        </Button>
+          <Button
+            size="sm"
+            className="bg-primary text-white hover:bg-primary-light"
+            onClick={handleCopyToCanvas}
+          >
+            <Copy className="mr-1 h-4 w-4" />
+            キャンバスに追加
+          </Button>
+          <Button
+            size="sm"
+            className="bg-green-600 text-white hover:bg-green-700"
+            onClick={handleShowZoneSelector}
+          >
+            <ListFilter className="mr-1 h-4 w-4" />
+            エリアを選択
+          </Button>
+        </div>
+      )}
+      
+      {/* ゾーンセレクター - テキスト選択されて「エリアを選択」がクリックされたときに表示 */}
+      {showZoneSelector && selectedText && (
+        <div
+          className="absolute z-30"
+          style={{
+            top: `${Math.max(copyPosition.y, 10)}px`,
+            left: `${Math.min(copyPosition.x - 150, viewerRef.current?.clientWidth || window.innerWidth - 320)}px`,
+          }}
+        >
+          <ZoneSelector 
+            text={selectedText} 
+            onClose={handleCloseZoneSelector} 
+          />
+        </div>
       )}
       
       {/* Empty state */}

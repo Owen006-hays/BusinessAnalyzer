@@ -160,8 +160,37 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
     };
   }, [editing, box.id, deleteTextBox]);
 
-  // Dynamically determine background color based on box.color
+  // Dynamically determine background color based on box.color or zone
   const getBgColorClass = () => {
+    // ゾーンプロパティが存在する場合、それに基づいて色を決定
+    if (box.zone) {
+      switch (box.zone) {
+        // SWOT
+        case 'strengths': return 'bg-blue-100 border-blue-200';
+        case 'weaknesses': return 'bg-red-100 border-red-200';
+        case 'opportunities': return 'bg-green-100 border-green-200';
+        case 'threats': return 'bg-yellow-100 border-yellow-200';
+        
+        // 4P
+        case 'product': return 'bg-indigo-100 border-indigo-200';
+        case 'price': return 'bg-purple-100 border-purple-200';
+        case 'place': return 'bg-pink-100 border-pink-200';
+        case 'promotion': return 'bg-teal-100 border-teal-200';
+        
+        // 3C
+        case 'company': return 'bg-blue-100 border-blue-200';
+        case 'customer': return 'bg-green-100 border-green-200';
+        case 'competitor': return 'bg-yellow-100 border-yellow-200';
+        
+        // PEST
+        case 'political': return 'bg-purple-100 border-purple-200';
+        case 'economic': return 'bg-blue-100 border-blue-200';
+        case 'social': return 'bg-green-100 border-green-200';
+        case 'technological': return 'bg-teal-100 border-teal-200';
+      }
+    }
+    
+    // ゾーンがない場合、または一致しない場合はbox.colorを使用
     switch (box.color) {
       case 'blue': return 'bg-blue-100 border-blue-200';
       case 'green': return 'bg-green-100 border-green-200';
@@ -188,17 +217,24 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
       }}
       onDoubleClick={handleDoubleClick}
     >
-      <div
-        ref={contentEditableRef}
-        contentEditable={editing}
-        suppressContentEditableWarning
-        className={`text-sm text-gray-800 min-h-[40px] outline-none ${
-          editing ? 'bg-white bg-opacity-50 p-1 rounded' : ''
-        }`}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-      >
-        {content}
+      <div className="relative">
+        {box.zone && (
+          <div className="absolute -top-2 -left-2 text-xs font-medium px-2 py-0.5 rounded-full bg-white shadow-sm border">
+            {getZoneLabel(box.zone)}
+          </div>
+        )}
+        <div
+          ref={contentEditableRef}
+          contentEditable={editing}
+          suppressContentEditableWarning
+          className={`text-sm text-gray-800 min-h-[40px] outline-none ${
+            editing ? 'bg-white bg-opacity-50 p-1 rounded' : ''
+          }`}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+        >
+          {content}
+        </div>
       </div>
 
       {/* Resize handle */}
