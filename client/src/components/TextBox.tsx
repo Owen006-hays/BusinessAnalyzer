@@ -41,8 +41,23 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
   // Handle text content change
   const handleContentChange = () => {
     if (contentEditableRef.current) {
-      const newContent = contentEditableRef.current.textContent || "";
-      setContent(newContent);
+      // テキストが空でも最低限のスペースを保持して削除されないようにする
+      let newContent = contentEditableRef.current.textContent || "";
+      
+      // 完全に空のテキストの場合は、代わりにスペースを入れる
+      if (newContent.trim() === "") {
+        newContent = " ";
+        // UIに表示するローカルstateはスペースを設定
+        setContent(newContent);
+        // 編集可能要素に直接スペースを設定
+        if (contentEditableRef.current) {
+          contentEditableRef.current.textContent = newContent;
+        }
+      } else {
+        setContent(newContent);
+      }
+      
+      // テキストボックスの内容を更新
       updateTextBox(box.id, { content: newContent });
     }
   };
@@ -279,17 +294,24 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
     setContent(box.content);
   }, [box.content]);
 
-  // Handle keyboard events with a simpler approach
+  // Handle keyboard events for delete actions
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && !editing) {
-        // Check if the active element is within a child of our textbox
+      // 編集モード中は何もしない（通常のテキスト編集として扱う）
+      if (editing) return;
+      
+      // Deleteキーが押された場合のみ処理（Backspaceキーは除外）
+      if (e.key === 'Delete') {
+        // テキストボックスが明示的に選択された状態でのみ削除を許可する
+        // 実装方法: テキストボックス自体またはその子要素がフォーカスされているかチェック
         const active = document.activeElement;
-        const textBoxElements = document.querySelectorAll(`[data-id="${box.id}"]`);
-        for (const el of Array.from(textBoxElements)) {
-          if (el.contains(active)) {
+        if (!active) return;
+        
+        const textBoxElement = document.querySelector(`[data-id="${box.id}"]`);
+        if (textBoxElement && (textBoxElement === active || textBoxElement.contains(active))) {
+          // 削除前に確認ダイアログを表示
+          if (window.confirm('このテキストボックスを削除しますか？')) {
             handleDelete();
-            break;
           }
         }
       }
