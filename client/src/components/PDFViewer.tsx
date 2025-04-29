@@ -42,28 +42,49 @@ const PDFViewer: React.FC = () => {
     
     const loadPdf = async () => {
       try {
-        // Load the PDF file
-        const arrayBuffer = await pdfFile.arrayBuffer();
-        
-        // フェイクワーカーモードの再確認
+        // 明示的にワーカーなしモード設定
         try {
-          // 明示的にワーカーなしモードを設定
           (pdfjsLib as any).GlobalWorkerOptions.disableWorker = true;
         } catch (e) {
           console.warn('PDF.js worker config error:', e);
         }
         
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        // ファイルの読み込み試行
+        console.log("PDFファイルの読み込みを開始:", pdfFile.name);
         
-        setPdfDocument(pdf);
-        setTotalPages(pdf.numPages);
-        setCurrentPage(1);
+        // ファイルをArrayBufferに変換
+        let arrayBuffer;
+        try {
+          arrayBuffer = await pdfFile.arrayBuffer();
+          console.log("PDFファイルをArrayBufferに変換しました:", arrayBuffer.byteLength, "bytes");
+        } catch (err) {
+          const error = err as Error;
+          console.error("ファイルの読み込みエラー:", error);
+          setLoadError(`ファイルの読み込み中にエラーが発生しました: ${error.message || 'ファイルが壊れているか、アクセスできません'}`);
+          return;
+        }
         
-        // Render the first page
-        renderPage(1, pdf);
-      } catch (error) {
-        console.error("Error loading PDF:", error);
-        setLoadError("PDFの読み込み中にエラーが発生しました。別のPDFファイルを試してください。");
+        // PDFとして解析を試行
+        try {
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          console.log("PDFの解析に成功:", pdf.numPages, "ページ");
+          
+          setPdfDocument(pdf);
+          setTotalPages(pdf.numPages);
+          setCurrentPage(1);
+          
+          // 最初のページをレンダリング
+          renderPage(1, pdf);
+        } catch (err) {
+          const error = err as Error;
+          console.error("PDFの解析エラー:", error);
+          setLoadError(`PDFとして解析できませんでした: ${error.message || '無効なPDFファイルです'}`);
+          return;
+        }
+      } catch (err) {
+        const error = err as Error;
+        console.error("PDF処理中の予期しないエラー:", error);
+        setLoadError(`予期しないエラーが発生しました: ${error.message || 'PDFの読み込みに失敗しました'}`);
       }
     };
     
@@ -282,9 +303,30 @@ const PDFViewer: React.FC = () => {
   // File upload handler
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type === "application/pdf") {
-      setPdfFile(file);
+    
+    // エラーをリセット
+    setLoadError(null);
+    
+    if (!file) {
+      return;
     }
+    
+    // ファイルタイプのチェック
+    if (file.type !== "application/pdf") {
+      setLoadError("PDFファイルのみアップロードできます。選択したファイルは " + 
+        (file.type || "不明なタイプ") + " です。");
+      return;
+    }
+    
+    // ファイルサイズのチェック（20MB以上は警告）
+    if (file.size > 20 * 1024 * 1024) {
+      console.warn("大きなPDFファイル（" + Math.round(file.size / (1024 * 1024)) + 
+        "MB）がアップロードされました。処理に時間がかかる場合があります。");
+    }
+    
+    // 有効なPDFファイルがアップロードされた場合
+    console.log("PDFファイルがアップロードされました:", file.name, file.size, "bytes");
+    setPdfFile(file);
   };
 
   return (

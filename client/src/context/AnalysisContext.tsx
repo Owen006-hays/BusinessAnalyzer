@@ -6,9 +6,11 @@ import { queryClient } from "@/lib/queryClient";
 import html2canvas from "html2canvas";
 
 interface AnalysisContextType {
-  // PDF related
+  // ファイル関連
   pdfFile: File | null;
   setPdfFile: (file: File | null) => void;
+  imageFile: File | null;
+  setImageFile: (file: File | null) => void;
   
   // TextBox related
   textBoxes: TextBox[];
@@ -38,8 +40,9 @@ const AnalysisContext = createContext<AnalysisContextType | undefined>(undefined
 export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ 
   children 
 }) => {
-  // State for PDF
+  // State for file uploads
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   
   // State for analysis
   const [analysisId, setAnalysisId] = useState<number>(1); // Default analysis ID

@@ -12,9 +12,10 @@ import { useToast } from "@/hooks/use-toast";
 
 interface HeaderProps {
   onPdfUpload: (file: File) => void;
+  onImageDisplay?: (file: File) => void; // 画像表示のためのオプションのプロパティ
 }
 
-const Header: React.FC<HeaderProps> = ({ onPdfUpload }) => {
+const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
   const { 
     addTextBox, 
     setCurrentTemplate, 
@@ -28,15 +29,26 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload }) => {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type === "application/pdf") {
+    if (!file) return;
+    
+    // PDFファイル処理
+    if (file.type === "application/pdf") {
       onPdfUpload(file);
-    } else if (file) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a PDF file",
-        variant: "destructive",
-      });
+      return;
     }
+    
+    // 画像ファイル処理（JPEGやPNG）
+    if (file.type.startsWith("image/") && onImageDisplay) {
+      onImageDisplay(file);
+      return;
+    }
+    
+    // サポートされていないファイル形式
+    toast({
+      title: "サポートされていないファイル形式",
+      description: "PDFファイルまたは画像ファイル(JPEG, PNG)をアップロードしてください。",
+      variant: "destructive",
+    });
   };
 
   const handleAddTextBox = () => {
@@ -93,11 +105,11 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload }) => {
           >
             <label>
               <Upload className="h-4 w-4 mr-1" />
-              <span className="hidden md:inline">PDFをアップロード</span>
-              <span className="inline md:hidden">PDF</span>
+              <span className="hidden md:inline">ファイルをアップロード</span>
+              <span className="inline md:hidden">ファイル</span>
               <input
                 type="file"
-                accept="application/pdf"
+                accept="application/pdf,image/jpeg,image/png,image/gif"
                 className="hidden"
                 onChange={handleFileUpload}
               />
