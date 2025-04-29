@@ -93,7 +93,6 @@ const Home: React.FC = () => {
             >
               <ResizablePanel 
                 defaultSize={panelSizes.canvas}
-                initialSize={panelSizes.canvas}
                 minSize={20} // 最小20%
                 className="bg-white"
               >
