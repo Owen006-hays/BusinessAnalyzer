@@ -99,6 +99,49 @@
   z-index: 5;
 }
 
+/* 改善されたエラー表示スタイル */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  margin: 1rem;
+  background-color: rgb(254, 242, 242);
+  border: 2px solid rgb(248, 180, 180);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  max-width: 90%;
+  margin: 2rem auto;
+}
+
+.error-icon {
+  margin-bottom: 1rem;
+}
+
+.error-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: rgb(220, 38, 38);
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.error-message {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: rgb(85, 85, 85);
+  line-height: 1.5;
+}
+
+.error-help {
+  font-size: 0.875rem;
+  background-color: rgba(254, 226, 226, 0.5);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
 /* Make sure textboxes are above PDF layer */
 .text-box {
   z-index: 10;
