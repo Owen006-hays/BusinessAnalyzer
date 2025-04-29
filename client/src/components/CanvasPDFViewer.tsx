@@ -39,8 +39,13 @@ const CanvasPDFViewer: React.FC = () => {
         // ArrayBufferに変換
         const arrayBuffer = await pdfFile.arrayBuffer();
         
-        // PDFドキュメントを読み込み
-        const loadingTask = pdfjsLib.getDocument(arrayBuffer);
+        // PDFドキュメントを読み込み（日本語フォントサポート付き）
+        const loadingTask = pdfjsLib.getDocument({
+          data: arrayBuffer,
+          cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
+          cMapPacked: true,
+          standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/'
+        });
         
         // タイムアウト処理
         const timeoutPromise = new Promise((_, reject) => {
@@ -77,7 +82,12 @@ const CanvasPDFViewer: React.FC = () => {
         if (!pdfjsLib) return;
         
         const arrayBuffer = await pdfFile.arrayBuffer();
-        const loadingTask = pdfjsLib.getDocument(arrayBuffer);
+        const loadingTask = pdfjsLib.getDocument({
+          data: arrayBuffer,
+          cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
+          cMapPacked: true,
+          standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/'
+        });
         const pdf = await loadingTask.promise;
         
         renderPage(pdf, currentPage, zoom);
