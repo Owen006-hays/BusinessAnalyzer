@@ -1,46 +1,33 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useDrag } from "react-dnd";
 import { useAnalysisContext } from "@/context/AnalysisContext";
 import { Button } from "@/components/ui/button";
 import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
 
-// Import PDF.js correctly with workerSrc configuration
+// Import PDF.js correctly
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 
-// PDF.jsのグローバルオプションへのアクセス方法
-// TypeScriptインポートでGlobalWorkerOptionsにアクセスできない場合は
-// pdfjsLib経由でアクセス
-const GlobalWorkerOptions = (pdfjsLib as any).GlobalWorkerOptions;
-
-// PDF.js関連のグローバル設定
+// PDFJSをグローバルスコープに配置してワーカーの問題を回避
 (function setupPdfJs() {
   try {
-    console.log('Configuring PDF.js...');
+    // グローバルに設定
+    (window as any).pdfjsLib = pdfjsLib;
     
-    // PDF.jsワーカーを設定（ワーカーなしモード）
-    try {
-      // 通常の方法でワーカーの設定を試みる
-      GlobalWorkerOptions.workerSrc = '';
-      
-      // バックアップ方法としてdisableWorkerも設定
-      if (typeof GlobalWorkerOptions.disableWorker !== 'undefined') {
-        GlobalWorkerOptions.disableWorker = true;
-      }
-      
-      console.log('PDF.js worker配置モード設定完了:', GlobalWorkerOptions.workerSrc || 'ワーカーレスモード');
-    } catch (workerErr) {
-      console.error('PDF.js workerの設定に失敗:', workerErr);
+    console.log('PDF.js設定開始...');
+    
+    // PDF.jsのバージョン確認
+    if ((pdfjsLib as any).version) {
+      console.log('PDF.jsバージョン:', (pdfjsLib as any).version);
     }
     
-    // PDF.jsライブラリのバージョン情報をログに出力（診断用）
-    try {
-      if ((pdfjsLib as any).version) {
-        console.log('PDF.jsバージョン:', (pdfjsLib as any).version);
-      }
-    } catch (verErr) {
-      console.warn('PDF.jsバージョン取得失敗');
+    // ワーカーを使用せずにPDF処理するためのフラグを設定
+    // PDF.js内部ではワーカーを使用しない完全シンプルモードで動作
+    if ((pdfjsLib as any).GlobalWorkerOptions) {
+      (pdfjsLib as any).GlobalWorkerOptions.workerSrc = './dummy/';
     }
+    
+    console.log('PDF.js設定完了 - ワーカーレスモードで動作');
   } catch (error) {
     console.error('PDF.js設定エラー:', error);
   }
@@ -166,10 +153,6 @@ const PDFViewer: React.FC = () => {
     
     const loadPdf = async () => {
       try {
-        // ワーカーパスをすでに設定済みのため、
-        // この部分は不要になりました。
-        // すでに初期化時にworkerSrcを設定しています。
-        
         // ファイルの読み込み試行
         console.log("PDFファイルの読み込みを開始:", pdfFile.name);
         
@@ -190,16 +173,15 @@ const PDFViewer: React.FC = () => {
           console.log("PDF読み込みタスク開始");
           
           // PDF.jsの設定をオブジェクト形式で統一して明示的に設定
+          // @ts-ignore - TypeScriptの型定義が不完全なため
           const loadingTask = pdfjsLib.getDocument({
             data: arrayBuffer,
-            // 明示的にworkerが不要であることを指定
-            useWorkerFetch: false,
-            isEvalSupported: false,
+            // 以下の設定はTypeScriptの型定義にないがPDF.jsが受け入れるオプション
+            verbosity: 0,
             disableAutoFetch: true,
             disableStream: true,
             disableRange: true,
-            cMapUrl: '',
-            cMapPacked: true
+            isEvalSupported: false
           });
           
           console.log("PDFドキュメント読み込み中...");
@@ -525,7 +507,7 @@ const PDFViewer: React.FC = () => {
               strokeWidth="2" 
               strokeLinecap="round" 
               strokeLinejoin="round" 
-              className="h-12 w-12 text-secondary-dark"
+              className="w-12 h-12"
             >
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
@@ -534,9 +516,13 @@ const PDFViewer: React.FC = () => {
               <polyline points="10 9 9 9 8 9"></polyline>
             </svg>
           </div>
-          <h2 className="text-xl font-medium mb-2">ファイルが読み込まれていません</h2>
-          <p className="text-center max-w-md mb-4">PDFまたは画像をアップロードして、情報を分析エリアに追加してください。</p>
+          <h2 className="text-lg font-medium text-gray-900 mb-3">PDFまたは画像をアップロード</h2>
+          <p className="text-center text-secondary-dark mb-6 max-w-sm px-4">
+            PDFや画像ファイルをアップロードして、テキストを抽出したりビジネス分析に利用できます。
+          </p>
           <Button
+            variant="default"
+            size="sm"
             className="bg-primary hover:bg-primary-light text-white"
             onClick={() => fileInputRef.current?.click()}
           >
@@ -589,111 +575,112 @@ const PDFViewer: React.FC = () => {
             <FileUp className="mr-2 h-5 w-5" />
             別のファイルを試す
           </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/pdf,image/jpeg,image/png,image/gif"
-            className="hidden"
-            onChange={handleFileUpload}
-          />
         </div>
       )}
 
-      {/* Image display - shown when image is loaded */}
-      {imageUrl && !pdfFile && !loadError && (
-        <div className="flex-grow flex flex-col">
-          <div className="flex items-center justify-between bg-secondary-light border-b border-secondary p-2">
-            <div className="flex items-center">
-              <span className="font-medium text-secondary-dark">{imageFile?.name}</span>
-            </div>
+      {/* PDF viewer - shown when PDF is loaded */}
+      {pdfFile && !loadError && (
+        <div className="flex flex-col h-full">
+          {/* PDF controls */}
+          <div className="bg-secondary-light p-2 border-b border-secondary flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Button size="icon" variant="ghost" onClick={zoomOut}>
-                <ZoomOut className="h-4 w-4" />
+              <span className="text-sm text-secondary-dark">
+                {currentPage} / {totalPages}
+              </span>
+              <div className="flex space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={prevPage}
+                  disabled={currentPage <= 1}
+                  className="h-8 w-8 p-0 text-secondary-dark"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={nextPage}
+                  disabled={currentPage >= totalPages}
+                  className="h-8 w-8 p-0 text-secondary-dark"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center space-x-1">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={zoomOut}
+                className="h-8 w-8 p-0 text-secondary-dark"
+              >
+                <ZoomOut className="h-5 w-5" />
               </Button>
-              <span>{Math.round(zoom * 100)}%</span>
-              <Button size="icon" variant="ghost" onClick={zoomIn}>
-                <ZoomIn className="h-4 w-4" />
+              <span className="text-xs text-secondary-dark w-12 text-center">
+                {Math.round(zoom * 100)}%
+              </span>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={zoomIn}
+                className="h-8 w-8 p-0 text-secondary-dark"
+              >
+                <ZoomIn className="h-5 w-5" />
               </Button>
             </div>
           </div>
           
+          {/* PDF content */}
           <div 
-            className="flex-grow image-viewer p-4"
             ref={containerRef}
+            className="relative flex-grow flex justify-center overflow-auto bg-[#f0f0f0]"
           >
-            <img 
-              src={imageUrl} 
-              alt="Uploaded image"
-              style={{ transform: `scale(${zoom})`, transformOrigin: 'center top' }}
-              className="transition-transform duration-200"
+            <canvas 
+              ref={canvasRef}
+              className="shadow-md my-4"
             />
+            <div ref={drag} style={{ opacity: isDragging ? 0.5 : 1 }} />
           </div>
         </div>
       )}
-      
-      {/* PDF content - shown when PDF is loaded successfully */}
-      {pdfFile && !loadError && (
-        <div className="flex-grow flex flex-col">
-          {/* PDF toolbar */}
-          <div className="flex items-center justify-between bg-secondary-light border-b border-secondary p-2">
-            <div className="flex items-center space-x-2">
+
+      {/* Image viewer - shown when image is loaded */}
+      {imageFile && imageUrl && !loadError && (
+        <div className="flex flex-col h-full">
+          <div className="bg-secondary-light p-2 border-b border-secondary flex items-center justify-between">
+            <span className="text-sm text-secondary-dark">
+              {imageFile.name}
+            </span>
+            <div className="flex items-center space-x-1">
               <Button 
-                size="icon" 
                 variant="ghost" 
-                onClick={prevPage}
-                disabled={currentPage <= 1}
+                size="sm"
+                onClick={zoomOut}
+                className="h-8 w-8 p-0 text-secondary-dark"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ZoomOut className="h-5 w-5" />
               </Button>
-              <div>
-                <span>{currentPage}</span> / <span>{totalPages}</span>
-              </div>
+              <span className="text-xs text-secondary-dark w-12 text-center">
+                {Math.round(zoom * 100)}%
+              </span>
               <Button 
-                size="icon" 
                 variant="ghost" 
-                onClick={nextPage}
-                disabled={currentPage >= totalPages}
+                size="sm"
+                onClick={zoomIn}
+                className="h-8 w-8 p-0 text-secondary-dark"
               >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button size="icon" variant="ghost" onClick={zoomOut}>
-                <ZoomOut className="h-4 w-4" />
-              </Button>
-              <span>{Math.round(zoom * 100)}%</span>
-              <Button size="icon" variant="ghost" onClick={zoomIn}>
-                <ZoomIn className="h-4 w-4" />
+                <ZoomIn className="h-5 w-5" />
               </Button>
             </div>
           </div>
-
-          {/* PDF document container */}
-          <div 
-            ref={containerRef}
-            className="flex-grow overflow-auto bg-secondary-light p-4 flex justify-center relative"
-          >
-            <canvas 
-              ref={canvasRef} 
-              className="shadow-md"
+          <div className="image-viewer flex-grow overflow-auto">
+            <img 
+              src={imageUrl} 
+              alt={imageFile.name}
+              style={{ transform: `scale(${zoom})` }}
+              className="mx-auto my-4"
             />
-            
-            {/* Selection overlay for dragging */}
-            {selectedText && (
-              <div 
-                ref={drag} 
-                className={`absolute cursor-move bg-primary bg-opacity-20 ${
-                  isDragging ? 'opacity-50' : ''
-                }`}
-                style={{
-                  position: 'absolute',
-                  pointerEvents: 'none',
-                  opacity: 0, // Hide from view but still draggable
-                }}
-              >
-                {selectedText}
-              </div>
-            )}
           </div>
         </div>
       )}
