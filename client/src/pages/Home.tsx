@@ -9,7 +9,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 
 const Home: React.FC = () => {
   const [showInstructions, setShowInstructions] = useState(true);
-  const { pdfFile, setPdfFile, analysisId } = useAnalysisContext();
+  const { pdfFile, setPdfFile, setImageFile, analysisId } = useAnalysisContext();
   
   useEffect(() => {
     // Check if this is the first visit
@@ -25,10 +25,17 @@ const Home: React.FC = () => {
     setPdfFile(file);
   };
 
+  const handleImageDisplay = (file: File) => {
+    // 画像ファイルをセット
+    setImageFile(file);
+    // PDFファイルをクリア（画像とPDFは同時に表示しない）
+    setPdfFile(null);
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="flex flex-col h-screen bg-gray-100">
-        <Header onPdfUpload={handlePdfUpload} />
+        <Header onPdfUpload={handlePdfUpload} onImageDisplay={handleImageDisplay} />
         
         <main className="flex flex-1 overflow-hidden md:flex-row flex-col">
           <AnalysisCanvas />

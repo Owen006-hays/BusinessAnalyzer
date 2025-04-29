@@ -168,9 +168,11 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         name: analysisName,
         template: currentTemplate,
         pdfName: pdfFile?.name || null,
+        // 画像ファイル情報があれば保存
+        imageName: imageFile?.name || null,
       },
     });
-  }, [analysisId, analysisName, currentTemplate, pdfFile, updateAnalysisMutation]);
+  }, [analysisId, analysisName, currentTemplate, pdfFile, imageFile, updateAnalysisMutation]);
   
   // Load an analysis by ID
   const loadAnalysis = useCallback(async (id: number) => {
@@ -212,6 +214,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
   const value = {
     pdfFile,
     setPdfFile,
+    imageFile,
+    setImageFile,
     textBoxes,
     addTextBox,
     updateTextBox,

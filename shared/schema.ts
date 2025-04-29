@@ -22,6 +22,7 @@ export const analyses = pgTable("analyses", {
   name: text("name").notNull(),
   template: text("template"), // SWOT, 4P, 3C, PEST, etc.
   pdfName: text("pdf_name"),
+  imageName: text("image_name"), // 追加：画像ファイル名
   createdAt: text("created_at").notNull(),
 });
 
