@@ -114,14 +114,30 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchSheets();
   }, [analysisId]);
   
-  // Fetch text boxes for the current sheet
+  // Fetch text boxes for the current sheet and maintain cache
   useEffect(() => {
     const fetchTextBoxes = async () => {
       try {
+        // まずキャッシュからテキストボックスを取得
+        const cachedBoxes = textBoxesCache.get(currentSheetId);
+        if (cachedBoxes) {
+          console.log(`Using cached text boxes for sheet ${currentSheetId}`);
+          setTextBoxes(cachedBoxes);
+          return;
+        }
+        
+        // キャッシュになければAPIから取得
         const response = await fetch(`/api/textboxes/${currentSheetId}`);
         if (response.ok) {
           const data = await response.json();
           setTextBoxes(data);
+          
+          // キャッシュに保存
+          setTextBoxesCache(prev => {
+            const newCache = new Map(prev);
+            newCache.set(currentSheetId, data);
+            return newCache;
+          });
         }
       } catch (error) {
         console.error("Error fetching text boxes:", error);
@@ -129,7 +145,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     
     fetchTextBoxes();
-  }, [currentSheetId]);
+  }, [currentSheetId, textBoxesCache]);
   
   // Mutations for sheets
   const createSheetMutation = useMutation({
@@ -194,7 +210,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/sheets/${id}`);
     },
-    onSuccess: () => {
+    onSuccess: (_, deletedSheetId) => {
       queryClient.invalidateQueries({ queryKey: ["/api/sheets/analysis", analysisId] });
       // Re-fetch sheets
       fetch(`/api/sheets/analysis/${analysisId}`)
@@ -214,6 +230,13 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
               });
               return newMap;
             });
+            
+            // 削除されたシートのテキストボックスキャッシュを削除
+            setTextBoxesCache(prev => {
+              const newCache = new Map(prev);
+              newCache.delete(deletedSheetId);
+              return newCache;
+            });
           }
         })
         .catch(err => console.error("Error refetching sheets:", err));
@@ -231,7 +254,15 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       // Re-fetch text boxes
       fetch(`/api/textboxes/${currentSheetId}`)
         .then(res => res.json())
-        .then(data => setTextBoxes(data))
+        .then(data => {
+          setTextBoxes(data);
+          // キャッシュも更新
+          setTextBoxesCache(prev => {
+            const newCache = new Map(prev);
+            newCache.set(currentSheetId, data);
+            return newCache;
+          });
+        })
         .catch(err => console.error("Error refetching text boxes:", err));
     },
   });
@@ -246,7 +277,15 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       // Re-fetch text boxes
       fetch(`/api/textboxes/${currentSheetId}`)
         .then(res => res.json())
-        .then(data => setTextBoxes(data))
+        .then(data => {
+          setTextBoxes(data);
+          // キャッシュも更新
+          setTextBoxesCache(prev => {
+            const newCache = new Map(prev);
+            newCache.set(currentSheetId, data);
+            return newCache;
+          });
+        })
         .catch(err => console.error("Error refetching text boxes:", err));
     },
   });
@@ -260,7 +299,15 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       // Re-fetch text boxes
       fetch(`/api/textboxes/${currentSheetId}`)
         .then(res => res.json())
-        .then(data => setTextBoxes(data))
+        .then(data => {
+          setTextBoxes(data);
+          // キャッシュも更新
+          setTextBoxesCache(prev => {
+            const newCache = new Map(prev);
+            newCache.set(currentSheetId, data);
+            return newCache;
+          });
+        })
         .catch(err => console.error("Error refetching text boxes:", err));
     },
   });
