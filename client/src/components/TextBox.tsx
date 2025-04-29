@@ -26,8 +26,13 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: box.x, y: box.y });
   
-  // Initialize with box dimensions
-  const [dimensions, setDimensions] = useState({
+  // Initialize with box dimensions and define explicit type
+  type Dimensions = {
+    width: number;
+    height: number | 'auto';
+  };
+  
+  const [dimensions, setDimensions] = useState<Dimensions>({
     width: box.width || 200,
     height: box.height || 'auto',
   });
@@ -81,10 +86,22 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
       const newWidth = startWidth + (moveEvent.clientX - startX);
       const newHeight = startHeight + (moveEvent.clientY - startY);
       
+      // ステートを更新
       setDimensions({
         width: newWidth,
         height: newHeight,
       });
+      
+      // DOM要素のスタイルも直接更新
+      if (element) {
+        element.style.width = `${newWidth}px`;
+        // 数値か文字列かをチェックして適切に扱う
+        if (typeof newHeight === 'number') {
+          element.style.height = `${newHeight}px`;
+        } else {
+          element.style.height = 'auto';
+        }
+      }
     };
     
     const handleMouseUp = () => {
@@ -92,15 +109,32 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       
-      // 最新のサイズをキャプチャ
-      const currentWidth = dimensions.width;
-      const currentHeight = dimensions.height === 'auto' ? null : dimensions.height as number;
-      
-      // サイズを更新してサーバーに保存
-      updateTextBox(box.id, { 
-        width: currentWidth,
-        height: currentHeight,
-      });
+      if (element) {
+        // DOM要素から直接サイズを取得（より正確）
+        const currentWidth = parseInt(element.style.width) || dimensions.width;
+        // height値を適切に処理
+        let finalHeight: number | null = null;
+        
+        if (element.style.height !== 'auto') {
+          const parsedHeight = parseInt(element.style.height);
+          finalHeight = !isNaN(parsedHeight) ? parsedHeight : 
+            (typeof dimensions.height === 'number' ? dimensions.height : null);
+        }
+        
+        console.log('リサイズ後のサイズ:', { width: currentWidth, height: finalHeight });
+        
+        // 新しいサイズをステートに反映
+        setDimensions({
+          width: currentWidth,
+          height: finalHeight === null ? 'auto' : finalHeight,
+        });
+        
+        // サイズを更新してサーバーに保存
+        updateTextBox(box.id, { 
+          width: currentWidth,
+          height: finalHeight,
+        });
+      }
     };
     
     document.addEventListener('mousemove', handleMouseMove);
