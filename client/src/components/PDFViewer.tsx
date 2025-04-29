@@ -8,13 +8,21 @@ import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 
-// PDF.jsの設定 - フェイクワーカーを明示的に使うことで、
-// ワーカー読み込み失敗エラーを回避する
+// PDFJSの初期化設定
 try {
-  // この設定により、ワーカーなしでもPDFを表示できるようになる
-  (pdfjsLib as any).GlobalWorkerOptions.disableWorker = true;
+  // パス設定がすでに行われていない場合のみ設定
+  if (!(pdfjsLib as any).GlobalWorkerOptions.workerSrc) {
+    console.log('Setting up PDF.js worker');
+    
+    // ワーカーファイルのパスを指定
+    // フェイクワーカーモードを使用（ワーカーなし）
+    (pdfjsLib as any).GlobalWorkerOptions.disableWorker = true;
+    
+    // 代替アプローチとして、グローバルワーカーソースを空にしてフェイクワーカーを強制
+    (pdfjsLib as any).GlobalWorkerOptions.workerSrc = '';
+  }
 } catch (err) {
-  console.warn('PDF.js worker config error:', err);
+  console.warn('PDF.js worker setup error:', err);
 }
 
 const PDFViewer: React.FC = () => {
@@ -96,7 +104,12 @@ const PDFViewer: React.FC = () => {
         
         // PDFとして解析を試行
         try {
-          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          console.log("PDF読み込みタスク開始");
+          
+          // シンプルな設定でPDFを読み込む
+          const loadingTask = pdfjsLib.getDocument(arrayBuffer);
+          const pdf = await loadingTask.promise;
+          
           console.log("PDFの解析に成功:", pdf.numPages, "ページ");
           
           setPdfDocument(pdf);
@@ -106,9 +119,17 @@ const PDFViewer: React.FC = () => {
           // 最初のページをレンダリング
           renderPage(1, pdf);
         } catch (err) {
-          const error = err as Error;
-          console.error("PDFの解析エラー:", error);
-          setLoadError(`PDFとして解析できませんでした: ${error.message || '無効なPDFファイルです'}`);
+          // エラーの詳細なログ
+          console.error("PDFの解析エラー:", err);
+          
+          let errorMsg = '無効なPDFファイルです';
+          if (err instanceof Error) {
+            errorMsg = err.message || errorMsg;
+          } else if (typeof err === 'object' && err !== null) {
+            errorMsg = err.toString ? err.toString() : JSON.stringify(err);
+          }
+          
+          setLoadError(`PDFとして解析できませんでした: ${errorMsg}`);
           return;
         }
       } catch (err) {
