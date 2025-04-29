@@ -1,0 +1,143 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { insertTextBoxSchema, insertAnalysisSchema } from "@shared/schema";
+import { z } from "zod";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // API Routes for our application
+  
+  // TextBox routes
+  app.get("/api/textboxes/:analysisId", async (req, res) => {
+    const analysisId = parseInt(req.params.analysisId, 10);
+    if (isNaN(analysisId)) {
+      return res.status(400).json({ message: "Invalid analysis ID" });
+    }
+    
+    const textBoxes = await storage.getTextBoxesByAnalysisId(analysisId);
+    res.json(textBoxes);
+  });
+  
+  app.post("/api/textboxes", async (req, res) => {
+    try {
+      const textBoxData = insertTextBoxSchema.parse(req.body);
+      const textBox = await storage.createTextBox(textBoxData);
+      res.status(201).json(textBox);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid text box data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create text box" });
+    }
+  });
+  
+  app.patch("/api/textboxes/:id", async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid text box ID" });
+    }
+    
+    try {
+      const updateData = insertTextBoxSchema.partial().parse(req.body);
+      const updatedTextBox = await storage.updateTextBox(id, updateData);
+      
+      if (!updatedTextBox) {
+        return res.status(404).json({ message: "Text box not found" });
+      }
+      
+      res.json(updatedTextBox);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid update data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update text box" });
+    }
+  });
+  
+  app.delete("/api/textboxes/:id", async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid text box ID" });
+    }
+    
+    const deleted = await storage.deleteTextBox(id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Text box not found" });
+    }
+    
+    res.status(204).end();
+  });
+  
+  // Analysis routes
+  app.get("/api/analyses", async (req, res) => {
+    const analyses = await storage.getAnalyses();
+    res.json(analyses);
+  });
+  
+  app.get("/api/analyses/:id", async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid analysis ID" });
+    }
+    
+    const analysis = await storage.getAnalysis(id);
+    if (!analysis) {
+      return res.status(404).json({ message: "Analysis not found" });
+    }
+    
+    res.json(analysis);
+  });
+  
+  app.post("/api/analyses", async (req, res) => {
+    try {
+      const analysisData = insertAnalysisSchema.parse(req.body);
+      const analysis = await storage.createAnalysis(analysisData);
+      res.status(201).json(analysis);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid analysis data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create analysis" });
+    }
+  });
+  
+  app.patch("/api/analyses/:id", async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid analysis ID" });
+    }
+    
+    try {
+      const updateData = insertAnalysisSchema.partial().parse(req.body);
+      const updatedAnalysis = await storage.updateAnalysis(id, updateData);
+      
+      if (!updatedAnalysis) {
+        return res.status(404).json({ message: "Analysis not found" });
+      }
+      
+      res.json(updatedAnalysis);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid update data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update analysis" });
+    }
+  });
+  
+  app.delete("/api/analyses/:id", async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid analysis ID" });
+    }
+    
+    const deleted = await storage.deleteAnalysis(id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Analysis not found" });
+    }
+    
+    res.status(204).end();
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
