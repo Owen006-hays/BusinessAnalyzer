@@ -247,16 +247,25 @@ const CanvasPDFViewer: React.FC = () => {
             });
             selectedElements = [];
             
+            // コピーボタンや選択ツールチップが残っていれば削除
+            const oldCopyButtons = document.querySelectorAll('.copy-button');
+            oldCopyButtons.forEach(btn => btn.parentNode?.removeChild(btn));
+            
+            const oldTooltips = document.querySelectorAll('.selection-tooltip');
+            oldTooltips.forEach(tip => tip.parentNode?.removeChild(tip));
+            
             isSelecting = true;
+            // 正確な位置を計算
+            const containerRect = textLayerContainer.getBoundingClientRect();
             selectionStart = {
-              x: e.clientX,
-              y: e.clientY
+              x: e.clientX - window.scrollX,
+              y: e.clientY - window.scrollY
             };
             
             // 新しい選択範囲を作成
             selectionRect = createSelectionRect();
-            selectionRect.style.left = `${e.clientX - textLayerContainer.getBoundingClientRect().left}px`;
-            selectionRect.style.top = `${e.clientY - textLayerContainer.getBoundingClientRect().top}px`;
+            selectionRect.style.left = `${e.clientX - containerRect.left}px`;
+            selectionRect.style.top = `${e.clientY - containerRect.top}px`;
             selectionRect.style.width = '0px';
             selectionRect.style.height = '0px';
             textLayerContainer.appendChild(selectionRect);
@@ -317,7 +326,7 @@ const CanvasPDFViewer: React.FC = () => {
                 elTop > selectionBounds.bottom
               );
               
-              const minIntersectionRatio = 0.2; // 20%以上の重なりを要求
+              const minIntersectionRatio = 0.35; // 35%以上の重なりを要求（より厳密に）
               
               // 重なっている面積の比率を計算
               if (overlaps) {
@@ -381,20 +390,48 @@ const CanvasPDFViewer: React.FC = () => {
               
               // コピーボタンのクリックイベント
               copyButton.addEventListener('click', () => {
-                tempTextarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(tempTextarea);
-                
-                // コピー成功のフィードバック
-                copyButton.innerHTML = 'コピー完了!';
-                copyButton.style.backgroundColor = '#16a34a'; // green
-                
-                // 少し待ってから消す
-                setTimeout(() => {
-                  if (copyButton.parentNode) {
-                    copyButton.parentNode.removeChild(copyButton);
-                  }
-                }, 1500);
+                // 新しいClipboard APIを試みる
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(selectedTexts)
+                    .then(() => {
+                      // コピー成功のフィードバック
+                      copyButton.innerHTML = 'コピー完了!';
+                      copyButton.style.backgroundColor = '#16a34a'; // green
+                    })
+                    .catch(() => {
+                      // フォールバック: 旧式のexecCommandを使用
+                      tempTextarea.select();
+                      document.execCommand('copy');
+                      copyButton.innerHTML = 'コピー完了!';
+                      copyButton.style.backgroundColor = '#16a34a'; // green
+                    })
+                    .finally(() => {
+                      // リソースをクリーンアップ
+                      document.body.removeChild(tempTextarea);
+                      // 少し待ってから消す
+                      setTimeout(() => {
+                        if (copyButton.parentNode) {
+                          copyButton.parentNode.removeChild(copyButton);
+                        }
+                      }, 1500);
+                    });
+                } else {
+                  // 旧式のexecCommandを使用
+                  tempTextarea.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(tempTextarea);
+                  
+                  // コピー成功のフィードバック
+                  copyButton.innerHTML = 'コピー完了!';
+                  copyButton.style.backgroundColor = '#16a34a'; // green
+                  
+                  // 少し待ってから消す
+                  setTimeout(() => {
+                    if (copyButton.parentNode) {
+                      copyButton.parentNode.removeChild(copyButton);
+                    }
+                  }, 1500);
+                }
               });
               
               // 選択されたテキストを通知
@@ -732,14 +769,19 @@ const CanvasPDFViewer: React.FC = () => {
                 ref={canvasRef} 
                 className="shadow-md"
               />
-              <div className="text-selectable-hint">
-                <span className="flex items-center">
-                  <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
-                  テキストを選択してコピーできます
-                </span>
+              <div className="pdf-viewer-controls">
+                <div className="text-selectable-hint">
+                  <span className="flex items-center">
+                    <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    テキストをドラッグ選択してコピーできます
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500 mt-2 mb-1 flex justify-center">
+                  <span>選択可能な文字は青色でハイライトされます</span>
+                </div>
               </div>
             </div>
           </div>

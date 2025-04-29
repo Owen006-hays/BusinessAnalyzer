@@ -158,26 +158,50 @@
   z-index: 1;
 }
 
-/* テキスト選択が可能であることを示すツールチップ */
-.text-selectable-hint {
+/* PDFビューアのコントロール */
+.pdf-viewer-controls {
   position: absolute;
   top: 10px;
   left: 10px;
+  width: auto;
+  z-index: 100;
+}
+
+/* テキスト選択が可能であることを示すツールチップ */
+.text-selectable-hint {
+  position: relative;
   background-color: rgba(0, 0, 0, 0.7);
   color: white;
   padding: 8px 12px;
   border-radius: 4px;
   font-size: 14px;
-  z-index: 100;
   opacity: 0;
   transform: translateY(-10px);
   transition: all 0.3s ease;
   pointer-events: none;
   box-shadow: 0 2px 10px rgba(0,0,0,0.2);
   border: 1px solid rgba(255,255,255,0.1);
+  width: fit-content;
 }
 
 .pdf-container:hover .text-selectable-hint {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* テキスト選択ヒントの追加情報テキスト */
+.pdf-viewer-controls .text-xs {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  padding: 4px 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: all 0.4s ease;
+  transition-delay: 0.2s;
+}
+
+.pdf-container:hover .pdf-viewer-controls .text-xs {
   opacity: 1;
   transform: translateY(0);
 }
