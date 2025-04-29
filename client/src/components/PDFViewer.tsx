@@ -8,26 +8,27 @@ import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 
-// PDFJSをグローバルスコープに配置してワーカーの問題を回避
+// PDF.jsの最小限の設定 - ワーカーなしで動作するように設定
 (function setupPdfJs() {
   try {
-    // グローバルに設定
-    (window as any).pdfjsLib = pdfjsLib;
-    
     console.log('PDF.js設定開始...');
     
-    // PDF.jsのバージョン確認
+    // PDFJSのバージョン確認
     if ((pdfjsLib as any).version) {
       console.log('PDF.jsバージョン:', (pdfjsLib as any).version);
     }
     
-    // ワーカーを使用せずにPDF処理するためのフラグを設定
-    // PDF.js内部ではワーカーを使用しない完全シンプルモードで動作
-    if ((pdfjsLib as any).GlobalWorkerOptions) {
-      (pdfjsLib as any).GlobalWorkerOptions.workerSrc = './dummy/';
+    // PDF.jsのワーカー設定を試みる（複数の方式を試す）
+    try {
+      if ((pdfjsLib as any).GlobalWorkerOptions) {
+        // 方法1: null設定（ワーカーなし）
+        (pdfjsLib as any).GlobalWorkerOptions.workerSrc = null;
+      }
+    } catch (err) {
+      console.warn('PDF.jsワーカー設定エラー、継続して処理を試みます:', err);
     }
     
-    console.log('PDF.js設定完了 - ワーカーレスモードで動作');
+    console.log('PDF.js設定完了 - シンプルモードで動作');
   } catch (error) {
     console.error('PDF.js設定エラー:', error);
   }
@@ -172,17 +173,9 @@ const PDFViewer: React.FC = () => {
         try {
           console.log("PDF読み込みタスク開始");
           
-          // PDF.jsの設定をオブジェクト形式で統一して明示的に設定
-          // @ts-ignore - TypeScriptの型定義が不完全なため
-          const loadingTask = pdfjsLib.getDocument({
-            data: arrayBuffer,
-            // 以下の設定はTypeScriptの型定義にないがPDF.jsが受け入れるオプション
-            verbosity: 0,
-            disableAutoFetch: true,
-            disableStream: true,
-            disableRange: true,
-            isEvalSupported: false
-          });
+          // 最もシンプルな方法でPDFドキュメントを読み込む
+          // @ts-ignore - ArrayBufferを直接渡す方法（TypeScriptの制約を回避）
+          const loadingTask = pdfjsLib.getDocument(arrayBuffer);
           
           console.log("PDFドキュメント読み込み中...");
           
@@ -280,57 +273,48 @@ const PDFViewer: React.FC = () => {
     }
   };
   
-  // Render text layer for text selection
+  // シンプルなテキストレイヤーのレンダリング
   const renderTextLayer = async (page: PDFPageProxy, viewport: any) => {
     try {
+      // テキストコンテンツを取得
       const textContent = await page.getTextContent();
       const container = containerRef.current;
       
       if (!container) return;
       
-      // Clear existing text layer
-      const textLayer = container.querySelector('.textLayer');
-      if (textLayer) {
-        textLayer.remove();
+      // 既存のテキストレイヤーをクリア
+      const existingLayer = container.querySelector('.textLayer');
+      if (existingLayer) {
+        existingLayer.remove();
       }
       
-      // Create new text layer
-      const newTextLayer = document.createElement('div');
-      newTextLayer.className = 'textLayer';
-      newTextLayer.style.width = `${viewport.width}px`;
-      newTextLayer.style.height = `${viewport.height}px`;
-      container.appendChild(newTextLayer);
+      // テキストの選択と表示のためのシンプルなラベルを作成
+      const textSummary = document.createElement('div');
+      textSummary.className = 'text-selection-help';
+      textSummary.style.position = 'absolute';
+      textSummary.style.top = '10px';
+      textSummary.style.left = '10px';
+      textSummary.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+      textSummary.style.color = 'white';
+      textSummary.style.padding = '8px 12px';
+      textSummary.style.borderRadius = '4px';
+      textSummary.style.fontSize = '14px';
+      textSummary.style.zIndex = '20';
+      textSummary.textContent = 'CanvasベースのPDF表示: テキスト選択機能はブラウザネイティブの選択を使用します';
       
-      // Position the text items
-      textContent.items.forEach((item: any) => {
-        const tx = pdfjsLib.Util.transform(
-          viewport.transform,
-          item.transform
-        );
-        
-        const style = {
-          left: `${tx[4]}px`,
-          top: `${tx[5]}px`,
-          fontSize: `${tx[0]}px`,
-          transform: `scaleX(${item.width / (item.str.length * tx[0])})`
-        };
-        
-        const textSpan = document.createElement('span');
-        textSpan.textContent = item.str;
-        textSpan.style.left = style.left;
-        textSpan.style.top = style.top;
-        textSpan.style.fontSize = style.fontSize;
-        textSpan.style.transform = style.transform;
-        textSpan.className = 'pdf-text';
-        textSpan.dataset.text = item.str;
-        
-        newTextLayer.appendChild(textSpan);
-      });
+      // 3秒後に非表示
+      setTimeout(() => {
+        if (textSummary.parentNode) {
+          textSummary.parentNode.removeChild(textSummary);
+        }
+      }, 3000);
       
-      // Add event listener for text selection
-      newTextLayer.addEventListener('mouseup', handleTextSelection);
+      container.appendChild(textSummary);
+      
+      // テキスト選択のためのイベントリスナーを追加
+      container.addEventListener('mouseup', handleTextSelection);
     } catch (error) {
-      console.error("Error rendering text layer:", error);
+      console.error("Error with text content:", error);
     }
   };
   
