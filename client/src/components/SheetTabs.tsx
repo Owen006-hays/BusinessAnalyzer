@@ -69,12 +69,14 @@ const SheetTabs: React.FC = () => {
   };
   
   return (
-    <div className="flex items-center border-b border-gray-200 overflow-x-auto">
+    <div className="flex items-center border-b border-gray-200 overflow-x-auto bg-gray-100">
       {sheets.map((sheet) => (
         <div 
           key={sheet.id} 
           className={`flex items-center px-4 py-2 relative cursor-pointer border-r border-gray-200 
-            ${currentSheetId === sheet.id ? 'bg-white border-b-0' : 'bg-gray-100'}`}
+            ${currentSheetId === sheet.id 
+              ? 'bg-gray-200 border-b-2 border-b-blue-500 font-medium shadow-sm' 
+              : 'bg-white hover:bg-gray-50 border-b border-b-transparent'}`}
           onClick={() => handleTabClick(sheet.id)}
         >
           {editingSheetId === sheet.id ? (
@@ -129,7 +131,7 @@ const SheetTabs: React.FC = () => {
       <Button
         variant="ghost"
         size="sm"
-        className="ml-2 text-gray-600 hover:text-blue-600"
+        className="ml-2 text-gray-600 hover:text-blue-600 bg-white hover:bg-gray-50 shadow-sm"
         onClick={handleAddSheet}
       >
         <PlusCircle size={16} className="mr-1" />
