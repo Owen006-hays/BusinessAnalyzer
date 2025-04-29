@@ -62,8 +62,20 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [currentSheetId, setCurrentSheetId] = useState<number>(1); // デフォルトシートID
   
-  // State for template
-  const [currentTemplate, setCurrentTemplate] = useState<string | null>(null);
+  // テンプレートの状態はシートIDごとに管理
+  const [templateMap, setTemplateMap] = useState<Map<number, string | null>>(new Map());
+  
+  // 現在のテンプレート（現在のシートに関連付けられたもの）
+  const currentTemplate = templateMap.get(currentSheetId) || null;
+  
+  // テンプレートを設定するラッパー関数
+  const setCurrentTemplate = useCallback((template: string | null) => {
+    setTemplateMap(prev => {
+      const newMap = new Map(prev);
+      newMap.set(currentSheetId, template);
+      return newMap;
+    });
+  }, [currentSheetId]);
   
   // State for textboxes
   const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
@@ -80,9 +92,16 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
           const data = await response.json();
           setSheets(data);
           
-          // シートが存在する場合は最初のシートを選択
+          // シートが存在する場合は最初のシートを選択し、テンプレート情報も取得
           if (data.length > 0) {
             setCurrentSheetId(data[0].id);
+            
+            // 各シートのテンプレート情報をMapに登録
+            const newTemplateMap = new Map<number, string | null>();
+            data.forEach((sheet: Sheet) => {
+              newTemplateMap.set(sheet.id, sheet.template);
+            });
+            setTemplateMap(newTemplateMap);
           }
         }
       } catch (error) {
@@ -123,9 +142,20 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         .then(res => res.json())
         .then(data => {
           setSheets(data);
+          
           // 新しいシートが作成された場合、それを選択
           if (data.length > 0) {
-            setCurrentSheetId(data[data.length - 1].id);
+            const newSheetId = data[data.length - 1].id;
+            setCurrentSheetId(newSheetId);
+            
+            // テンプレートマップを更新
+            setTemplateMap(prev => {
+              const newMap = new Map(prev);
+              data.forEach((sheet: Sheet) => {
+                newMap.set(sheet.id, sheet.template);
+              });
+              return newMap;
+            });
           }
         })
         .catch(err => console.error("Error refetching sheets:", err));
@@ -142,7 +172,18 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       // Re-fetch sheets
       fetch(`/api/sheets/analysis/${analysisId}`)
         .then(res => res.json())
-        .then(data => setSheets(data))
+        .then(data => {
+          setSheets(data);
+          
+          // テンプレートマップを更新
+          setTemplateMap(prev => {
+            const newMap = new Map(prev);
+            data.forEach((sheet: Sheet) => {
+              newMap.set(sheet.id, sheet.template);
+            });
+            return newMap;
+          });
+        })
         .catch(err => console.error("Error refetching sheets:", err));
     },
   });
@@ -158,9 +199,19 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         .then(res => res.json())
         .then(data => {
           setSheets(data);
+          
           // シートが削除された場合、最初のシートを選択
           if (data.length > 0) {
             setCurrentSheetId(data[0].id);
+            
+            // テンプレートマップを更新
+            setTemplateMap(prev => {
+              const newMap = new Map<number, string | null>();
+              data.forEach((sheet: Sheet) => {
+                newMap.set(sheet.id, sheet.template);
+              });
+              return newMap;
+            });
           }
         })
         .catch(err => console.error("Error refetching sheets:", err));
@@ -423,8 +474,12 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
           const firstSheet = sheetsData[0];
           setCurrentSheetId(firstSheet.id);
           
-          // シートからテンプレート情報を取得
-          setCurrentTemplate(firstSheet.template);
+          // 各シートのテンプレート情報をMapに登録
+          const newTemplateMap = new Map<number, string | null>();
+          sheetsData.forEach((sheet: Sheet) => {
+            newTemplateMap.set(sheet.id, sheet.template);
+          });
+          setTemplateMap(newTemplateMap);
           
           // シートに関連するテキストボックスを取得
           const textBoxesRes = await fetch(`/api/textboxes/${firstSheet.id}`);
