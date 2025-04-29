@@ -92,9 +92,14 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       
+      // 最新のサイズをキャプチャ
+      const currentWidth = dimensions.width;
+      const currentHeight = dimensions.height === 'auto' ? null : dimensions.height as number;
+      
+      // サイズを更新してサーバーに保存
       updateTextBox(box.id, { 
-        width: dimensions.width,
-        height: dimensions.height === 'auto' ? null : dimensions.height as number,
+        width: currentWidth,
+        height: currentHeight,
       });
     };
     
@@ -214,11 +219,18 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
         
-        // 位置を更新してサーバーに保存
+        // 現在の位置を取得（DOM要素から直接取得してより正確に）
+        const currentX = parseInt(element.style.left) || position.x;
+        const currentY = parseInt(element.style.top) || position.y;
+        
+        // 位置を更新してサーバーに保存（直近の正確な値を使用）
         updateTextBox(box.id, { 
-          x: position.x,
-          y: position.y
+          x: currentX,
+          y: currentY
         });
+        
+        // ローカルステートも同期
+        setPosition({ x: currentX, y: currentY });
       };
       
       document.addEventListener('mousemove', handleMouseMove);
@@ -265,11 +277,18 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
         document.removeEventListener('touchmove', handleTouchMove);
         document.removeEventListener('touchend', handleTouchEnd);
         
-        // 位置を更新してサーバーに保存
+        // 現在の位置を取得（DOM要素から直接取得してより正確に）
+        const currentX = parseInt(element.style.left) || position.x;
+        const currentY = parseInt(element.style.top) || position.y;
+        
+        // 位置を更新してサーバーに保存（直近の正確な値を使用）
         updateTextBox(box.id, { 
-          x: position.x,
-          y: position.y
+          x: currentX,
+          y: currentY
         });
+        
+        // ローカルステートも同期
+        setPosition({ x: currentX, y: currentY });
       };
       
       document.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -432,9 +451,14 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
             document.removeEventListener('touchmove', handleTouchMove);
             document.removeEventListener('touchend', handleTouchEnd);
             
+            // 最新のサイズを取得
+            const currentWidth = dimensions.width;
+            const currentHeight = dimensions.height === 'auto' ? null : dimensions.height as number;
+            
+            // サイズを更新してサーバーに保存
             updateTextBox(box.id, { 
-              width: dimensions.width,
-              height: dimensions.height === 'auto' ? null : dimensions.height as number,
+              width: currentWidth,
+              height: currentHeight,
             });
           };
           
