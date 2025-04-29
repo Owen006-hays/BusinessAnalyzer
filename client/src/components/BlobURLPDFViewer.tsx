@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAnalysisContext } from "@/context/AnalysisContext";
 import { Button } from "@/components/ui/button";
-import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Copy, ListFilter } from "lucide-react";
+import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Copy, ListFilter, PaintBucket } from "lucide-react";
 import ZoneSelector from "@/components/ZoneSelector";
+import ColorPicker from "@/components/ColorPicker";
 
 /**
  * シンプルなPDFビューワーコンポーネント
@@ -15,6 +16,7 @@ const BlobURLPDFViewer: React.FC = () => {
     imageFile, 
     setImageFile, 
     addTextBox,
+    addTextBoxToZone,
     currentTemplate,
     setCurrentTemplate 
   } = useAnalysisContext();
@@ -25,6 +27,7 @@ const BlobURLPDFViewer: React.FC = () => {
   const [selectedText, setSelectedText] = useState<string | null>(null);
   const [showCopyButton, setShowCopyButton] = useState(false);
   const [showZoneSelector, setShowZoneSelector] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const [copyPosition, setCopyPosition] = useState({ x: 0, y: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -113,13 +116,14 @@ const BlobURLPDFViewer: React.FC = () => {
   // テキスト選択の検出
   useEffect(() => {
     const checkSelection = () => {
-      // 既にゾーンセレクターが表示されている場合は処理をスキップ
-      if (showZoneSelector) return;
+      // 既にゾーンセレクターまたはカラーピッカーが表示されている場合は処理をスキップ
+      if (showZoneSelector || showColorPicker) return;
       
       const selection = window.getSelection();
       if (!selection || selection.rangeCount === 0 || selection.toString().trim() === '') {
         // ドロップダウンメニューがアクティブでない場合のみ選択状態をクリア
-        const isMenuActive = document.querySelector('.zone-selector-wrapper');
+        const isMenuActive = document.querySelector('.zone-selector-wrapper') || 
+                            document.querySelector('.color-picker-card');
         if (!isMenuActive) {
           setSelectedText(null);
           setShowCopyButton(false);
@@ -159,6 +163,11 @@ const BlobURLPDFViewer: React.FC = () => {
           
           setSelectedText(text);
           setShowCopyButton(true);
+          
+          // 自動的に色選択を表示（オプション）
+          // テキストが選択されたときに自動的に色選択ピッカーを表示する場合は下記のコメントを外す
+          // setShowCopyButton(false);
+          // setShowColorPicker(true);
         }
       } else {
         setSelectedText(null);
@@ -212,6 +221,34 @@ const BlobURLPDFViewer: React.FC = () => {
     window.getSelection()?.removeAllRanges();
     setSelectedText(null);
   };
+  
+  // 色選択ピッカーを表示
+  const handleShowColorPicker = () => {
+    if (selectedText) {
+      setShowCopyButton(false);
+      setShowColorPicker(true);
+    }
+  };
+  
+  // 色選択ピッカーを閉じる
+  const handleCloseColorPicker = () => {
+    setShowColorPicker(false);
+  };
+  
+  // 色が選択されたときの処理
+  const handleColorSelect = (color: string, zone?: string) => {
+    if (selectedText && zone) {
+      // 指定されたゾーンにテキストを追加
+      addTextBoxToZone(selectedText, zone);
+      
+      // 色選択ピッカーを閉じる
+      setShowColorPicker(false);
+      setSelectedText(null);
+      
+      // 選択をクリア
+      window.getSelection()?.removeAllRanges();
+    }
+  };
 
   return (
     <section className="md:w-1/2 w-full md:h-full h-screen bg-white overflow-hidden flex flex-col" ref={viewerRef}>
@@ -221,7 +258,7 @@ const BlobURLPDFViewer: React.FC = () => {
           className="absolute z-20 flex space-x-2"
           style={{
             top: `${Math.max(copyPosition.y - 40, 10)}px`,
-            left: `${Math.min(copyPosition.x - 60, viewerRef.current?.clientWidth || window.innerWidth - 240)}px`,
+            left: `${Math.min(copyPosition.x - 60, viewerRef.current?.clientWidth || window.innerWidth - 270)}px`,
           }}
         >
           <Button
@@ -240,7 +277,25 @@ const BlobURLPDFViewer: React.FC = () => {
             <ListFilter className="mr-1 h-4 w-4" />
             エリアを選択
           </Button>
+          <Button
+            size="sm"
+            className="bg-purple-600 text-white hover:bg-purple-700"
+            onClick={handleShowColorPicker}
+          >
+            <PaintBucket className="mr-1 h-4 w-4" />
+            色で選択
+          </Button>
         </div>
+      )}
+      
+      {/* カラーピッカー - テキスト選択されて「色で選択」がクリックされたときに表示 */}
+      {showColorPicker && selectedText && (
+        <ColorPicker 
+          onSelectColor={handleColorSelect}
+          onClose={handleCloseColorPicker}
+          selectedText={selectedText}
+          position={copyPosition}
+        />
       )}
       
       {/* ゾーンセレクター - テキスト選択されて「エリアを選択」がクリックされたときに表示 */}
