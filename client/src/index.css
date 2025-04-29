@@ -24,7 +24,7 @@
 }
 
 /* テキスト選択ハイライト */
-.textLayer {
+.text-layer {
   position: absolute;
   left: 0;
   top: 0;
@@ -33,14 +33,27 @@
   overflow: hidden;
   opacity: 0.2;
   line-height: 1.0;
+  z-index: 2;
 }
 
-.textLayer span {
+.text-layer span {
   color: transparent;
   position: absolute;
   white-space: pre;
   cursor: text;
   transform-origin: 0% 0%;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
+.text-layer span:hover {
+  background-color: rgba(66, 153, 225, 0.2);
+}
+
+.text-layer span::selection {
+  background: rgba(66, 153, 225, 0.4);
 }
 
 .text-selection-indicator {
@@ -60,6 +73,39 @@
 
 .pdf-text:hover {
   background-color: rgba(66, 153, 225, 0.1);
+}
+
+/* キャンバス上のテキスト選択をより使いやすくするためのスタイル */
+.pdf-container {
+  position: relative;
+  display: inline-block;
+}
+
+.pdf-container canvas {
+  position: relative;
+  z-index: 1;
+}
+
+/* テキスト選択が可能であることを示すツールチップ */
+.text-selectable-hint {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  z-index: 100;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.pdf-container:hover .text-selectable-hint {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 :root {

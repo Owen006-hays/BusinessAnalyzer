@@ -72,12 +72,23 @@ const CanvasPDFViewer: React.FC = () => {
     loadPdf();
   }, [pdfFile]);
   
+  // 現在のPDFドキュメントを保持する参照
+  const pdfDocumentRef = useRef<any>(null);
+  
   // ページ番号やズーム変更時の再レンダリング
   useEffect(() => {
     if (!pdfFile) return;
     
     const renderCurrentPage = async () => {
       try {
+        // PDFドキュメントがすでに読み込まれている場合は再利用
+        if (pdfDocumentRef.current) {
+          console.log(`ページ ${currentPage} をズーム ${zoom} でレンダリング`);
+          renderPage(pdfDocumentRef.current, currentPage, zoom);
+          return;
+        }
+        
+        // まだPDFが読み込まれていない場合は新たに読み込む
         const pdfjsLib = (window as any).pdfjsLib;
         if (!pdfjsLib) return;
         
@@ -88,7 +99,9 @@ const CanvasPDFViewer: React.FC = () => {
           cMapPacked: true,
           standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/'
         });
+        
         const pdf = await loadingTask.promise;
+        pdfDocumentRef.current = pdf; // 参照に保存
         
         renderPage(pdf, currentPage, zoom);
       } catch (error) {
@@ -134,7 +147,8 @@ const CanvasPDFViewer: React.FC = () => {
   // ページのレンダリング関数
   const renderPage = async (pdf: any, pageNumber: number, scale: number) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
     
     try {
       const page = await pdf.getPage(pageNumber);
@@ -150,7 +164,102 @@ const CanvasPDFViewer: React.FC = () => {
         viewport
       };
       
+      // キャンバスにPDFを描画
       await page.render(renderContext).promise;
+      
+      // テキストレイヤーを生成（コピー&ペースト機能用）
+      try {
+        // 既存のテキストレイヤーをクリア
+        const existingTextLayer = container.querySelector('.text-layer');
+        if (existingTextLayer) {
+          existingTextLayer.remove();
+        }
+        
+        // テキストコンテンツを取得
+        const textContent = await page.getTextContent();
+        
+        // テキストレイヤーコンテナを作成
+        const textLayerDiv = document.createElement('div');
+        textLayerDiv.className = 'text-layer';
+        textLayerDiv.style.position = 'absolute';
+        textLayerDiv.style.left = '0';
+        textLayerDiv.style.top = '0';
+        textLayerDiv.style.right = '0';
+        textLayerDiv.style.bottom = '0';
+        textLayerDiv.style.overflow = 'hidden';
+        textLayerDiv.style.opacity = '0.2';
+        textLayerDiv.style.lineHeight = '1.0';
+        textLayerDiv.style.width = `${viewport.width}px`;
+        textLayerDiv.style.height = `${viewport.height}px`;
+        textLayerDiv.style.pointerEvents = 'none';
+        
+        // キャンバスの親要素に追加（同じ位置に配置）
+        const canvasWrapper = canvas.parentNode as HTMLElement;
+        if (canvasWrapper) {
+          const canvasPosition = window.getComputedStyle(canvas).position;
+          if (canvasPosition === 'static') {
+            canvasWrapper.style.position = 'relative';
+          }
+          
+          // テキストレイヤーを配置
+          const textLayerContainer = document.createElement('div');
+          textLayerContainer.style.position = 'absolute';
+          textLayerContainer.style.left = `${canvas.offsetLeft}px`;
+          textLayerContainer.style.top = `${canvas.offsetTop}px`;
+          textLayerContainer.style.width = `${canvas.width}px`;
+          textLayerContainer.style.height = `${canvas.height}px`;
+          textLayerContainer.appendChild(textLayerDiv);
+          (canvasWrapper as HTMLElement).appendChild(textLayerContainer);
+          
+          // テキストアイテムを配置
+          const fontScale = 1.0;
+          const EXPANDED_DIVS_PADDING = 2; // px
+          
+          // テキストコンテンツのアイテムを処理
+          for (const item of textContent.items) {
+            if (!item.str) continue; // 空文字列はスキップ
+            
+            // テキスト要素を作成
+            const textItem = document.createElement('span');
+            textItem.textContent = item.str;
+            textItem.style.position = 'absolute';
+            textItem.style.whiteSpace = 'pre';
+            textItem.style.cursor = 'text';
+            textItem.style.userSelect = 'text';
+            textItem.style.pointerEvents = 'auto';
+            
+            // 要素をレイヤーに追加
+            textLayerDiv.appendChild(textItem);
+            
+            // PDF座標からWebページ座標に変換して配置
+            const transform = viewport.transform;
+            const [fontHeight, fontAscent] = item.transform.slice(3, 5);
+            
+            // スタイルを設定
+            const left = item.transform[4] * scale;
+            const top = item.transform[5] * scale - fontAscent;
+            textItem.style.left = `${left}px`;
+            textItem.style.top = `${top}px`;
+            textItem.style.fontSize = `${fontHeight * scale}px`;
+            textItem.style.fontFamily = 'sans-serif';
+            textItem.style.transform = `scaleX(${1})`; 
+            textItem.style.color = '#000'; // 選択できるように通常の文字色を設定
+            
+            // ハイライト効果を追加
+            textItem.addEventListener('mouseenter', () => {
+              textItem.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
+            });
+            
+            textItem.addEventListener('mouseleave', () => {
+              textItem.style.backgroundColor = 'transparent';
+            });
+          }
+        }
+        
+        console.log('テキストレイヤーを生成しました（コピー&ペースト機能が利用可能）');
+      } catch (textLayerError) {
+        console.error('テキストレイヤーの生成に失敗:', textLayerError);
+      }
     } catch (error) {
       console.error("ページレンダリングエラー:", error);
     }
@@ -342,10 +451,18 @@ const CanvasPDFViewer: React.FC = () => {
             ref={containerRef}
             className="flex-grow overflow-auto flex justify-center bg-gray-50"
           >
-            <canvas 
-              ref={canvasRef} 
-              className="my-4 shadow-md"
-            />
+            <div className="pdf-container relative my-4">
+              <canvas 
+                ref={canvasRef} 
+                className="shadow-md"
+              />
+              <div className="text-selectable-hint">
+                <span className="flex items-center">
+                  <Copy className="w-4 h-4 mr-1" />
+                  テキストを選択してコピーできます
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       )}
