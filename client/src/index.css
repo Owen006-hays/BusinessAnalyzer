@@ -2,6 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
+/* PDF表示用スタイル */
+.error-container {
+  @apply h-full flex flex-col items-center justify-center text-red-600 p-6 space-y-4;
+}
+
+.error-icon {
+  @apply bg-red-50 rounded-full w-24 h-24 flex items-center justify-center mb-6;
+}
+
+.error-title {
+  @apply text-xl font-bold text-red-700 mb-2;
+}
+
+.error-message {
+  @apply text-center mb-4 max-w-md text-red-600;
+}
+
+.error-help {
+  @apply text-sm text-gray-700 bg-gray-50 p-4 rounded-md mb-6 max-w-md;
+}
+
+/* テキスト選択ハイライト */
+.textLayer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  opacity: 0.2;
+  line-height: 1.0;
+}
+
+.textLayer span {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.text-selection-indicator {
+  position: absolute;
+  background-color: rgba(66, 153, 225, 0.3);
+  border: 1px solid rgba(66, 153, 225, 0.5);
+  border-radius: 2px;
+  z-index: 5;
+}
+
+.pdf-text {
+  color: transparent;
+  position: absolute;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.pdf-text:hover {
+  background-color: rgba(66, 153, 225, 0.1);
+}
+
 :root {
       --background: 0 0% 100%;
 --foreground: 20 14.3% 4.1%;

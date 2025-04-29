@@ -8,29 +8,33 @@ import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 
-// PDF.jsの最小限の設定 - ワーカーなしで動作するように設定
-(function setupPdfJs() {
+// PDF.jsの設定 - HTMLで設定されたCDNワーカーを使用
+(function verifyPdfJs() {
   try {
-    console.log('PDF.js設定開始...');
+    console.log('PDF.js設定確認...');
     
     // PDFJSのバージョン確認
     if ((pdfjsLib as any).version) {
       console.log('PDF.jsバージョン:', (pdfjsLib as any).version);
     }
     
-    // PDF.jsのワーカー設定を試みる（複数の方式を試す）
-    try {
-      if ((pdfjsLib as any).GlobalWorkerOptions) {
-        // 方法1: null設定（ワーカーなし）
-        (pdfjsLib as any).GlobalWorkerOptions.workerSrc = null;
+    // HTML側で設定されたワーカーの確認
+    if ((window as any).pdfjsLib && (window as any).pdfjsLib.GlobalWorkerOptions) {
+      const workerSrc = (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc;
+      console.log('HTML側で設定されたワーカーパス:', workerSrc || 'なし');
+      
+      // HTML側で設定されていなければCDNを設定
+      if (!workerSrc) {
+        const pdfVersion = '3.11.174'; // 最新の安定バージョン
+        const workerUrl = `https://unpkg.com/pdfjs-dist@${pdfVersion}/build/pdf.worker.min.js`;
+        console.log('ワーカーパスを設定します:', workerUrl);
+        (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
       }
-    } catch (err) {
-      console.warn('PDF.jsワーカー設定エラー、継続して処理を試みます:', err);
     }
     
-    console.log('PDF.js設定完了 - シンプルモードで動作');
+    console.log('PDF.js設定確認完了');
   } catch (error) {
-    console.error('PDF.js設定エラー:', error);
+    console.error('PDF.js設定確認エラー:', error);
   }
 })();
 

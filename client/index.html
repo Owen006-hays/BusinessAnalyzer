@@ -5,8 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <title>ビジネス分析アプリ</title>
     
-    <!-- PDF.jsのCDNスクリプトを追加 - ワーカーの問題を回避 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <!-- PDF.jsのCDNスクリプトと設定を追加 - 最新バージョン -->
+    <script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <script type="text/javascript">
+      // ページ読み込み時にPDF.jsのワーカーを設定
+      window.onload = function() {
+        if (window.pdfjsLib) {
+          // ワーカーのパスを明示的に設定
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+          console.log('PDF.jsワーカーを設定しました (CDN)');
+        }
+      };
+    </script>
   </head>
   <body>
     <div id="root"></div>
