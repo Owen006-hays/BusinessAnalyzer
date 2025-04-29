@@ -56,7 +56,7 @@ const PDFViewer: React.FC = () => {
   // 画像表示用state
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
-  // Handle image loading
+  // Handle image loading with better error handling
   useEffect(() => {
     if (!imageFile) {
       setImageUrl(null);
@@ -66,25 +66,68 @@ const PDFViewer: React.FC = () => {
     // エラー状態をリセット
     setLoadError(null);
     
-    try {
-      // 画像ファイルの場合は画像URLを作成
-      if (imageFile.type.startsWith('image/')) {
+    // 画像の読み込みとバリデーション
+    const loadImage = async () => {
+      try {
+        // 画像ファイルのバリデーション
+        if (!imageFile.type.startsWith('image/')) {
+          console.warn("サポートされていない画像形式:", imageFile.type);
+          setLoadError('サポートされていない画像フォーマットです。JPEG、PNG、GIFをお試しください。');
+          return;
+        }
+        
+        // サポートしている画像形式かチェック
+        const supportedFormats = ['image/jpeg', 'image/png', 'image/gif'];
+        if (!supportedFormats.includes(imageFile.type)) {
+          console.warn("サポートされていない画像フォーマット:", imageFile.type);
+          setLoadError(`サポートされていない画像フォーマットです (${imageFile.type}). JPEG、PNG、GIFをお試しください。`);
+          return;
+        }
+        
         console.log("画像ファイルを処理中:", imageFile.name, imageFile.size, "bytes");
+        
+        // 大きすぎる画像の警告（10MB以上）
+        if (imageFile.size > 10 * 1024 * 1024) {
+          console.warn("大きな画像ファイル:", Math.round(imageFile.size / (1024 * 1024)), "MB");
+        }
+        
+        // 画像URLを作成
         const url = URL.createObjectURL(imageFile);
+        
+        // 画像の読み込みをテスト
+        const img = new Image();
+        
+        // 画像の読み込みを確認するPromise
+        const loadPromise = new Promise((resolve, reject) => {
+          img.onload = () => resolve(true);
+          img.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
+          img.src = url;
+        });
+        
+        // 画像のロードを待つ
+        await loadPromise;
+        console.log("画像の読み込みに成功:", imageFile.name);
+        
+        // URLをステートに設定
         setImageUrl(url);
         
-        // コンポーネントがアンマウントされた時にURLを解放
+        // クリーンアップ処理
         return () => {
           URL.revokeObjectURL(url);
         };
-      } else {
-        console.warn("サポートされていない画像形式:", imageFile.type);
-        setLoadError('サポートされていない画像フォーマットです。JPEG、PNG、GIFをお試しください。');
+      } catch (err) {
+        console.error("画像ファイル処理エラー:", err);
+        setLoadError('画像ファイルの処理に失敗しました。別の画像をお試しください。');
+        
+        // エラーが発生した場合、画像URLをクリア
+        if (imageUrl) {
+          URL.revokeObjectURL(imageUrl);
+          setImageUrl(null);
+        }
       }
-    } catch (err) {
-      console.error("画像ファイル処理エラー:", err);
-      setLoadError('画像ファイル処理中にエラーが発生しました。別の画像をお試しください。');
-    }
+    };
+    
+    loadImage();
   }, [imageFile]);
   
   // Handle PDF loading
@@ -473,8 +516,8 @@ const PDFViewer: React.FC = () => {
 
       {/* Error state - shown when file loading fails */}
       {loadError && (
-        <div className="h-full flex flex-col items-center justify-center text-secondary-dark">
-          <div className="flex items-center justify-center bg-red-100 rounded-full w-24 h-24 mb-6">
+        <div className="error-container">
+          <div className="error-icon">
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
               viewBox="0 0 24 24" 
@@ -490,8 +533,16 @@ const PDFViewer: React.FC = () => {
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
           </div>
-          <h2 className="text-xl font-medium mb-2">ファイルの読み込みエラー</h2>
-          <p className="text-center max-w-md mb-4">{loadError}</p>
+          <h2 className="error-title">ファイルの読み込みエラー</h2>
+          <p className="error-message">{loadError}</p>
+          <div className="error-help">
+            <p className="mb-2">以下をお試しください：</p>
+            <ul className="list-disc pl-5">
+              <li>別のPDFファイルや画像ファイルをアップロード</li>
+              <li>PDFの場合、パスワード保護されていないものを使用</li>
+              <li>画像はJPEG、PNG、GIF形式が利用可能です</li>
+            </ul>
+          </div>
           <Button
             className="bg-primary hover:bg-primary-light text-white"
             onClick={() => fileInputRef.current?.click()}
@@ -528,14 +579,14 @@ const PDFViewer: React.FC = () => {
           </div>
           
           <div 
-            className="flex-grow overflow-auto bg-secondary-light p-4 flex justify-center"
+            className="flex-grow image-viewer p-4"
             ref={containerRef}
           >
             <img 
               src={imageUrl} 
               alt="Uploaded image"
               style={{ transform: `scale(${zoom})`, transformOrigin: 'center top' }}
-              className="max-w-full shadow-md transition-transform duration-200"
+              className="transition-transform duration-200"
             />
           </div>
         </div>

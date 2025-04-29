@@ -104,3 +104,82 @@
   z-index: 10;
 }
 
+/* Enhanced image viewer styles */
+.image-viewer {
+  background-color: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  overflow: auto;
+  position: relative;
+}
+
+.image-viewer img {
+  max-width: 100%;
+  height: auto;
+  transition: transform 0.2s ease-out;
+  transform-origin: center top;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.image-viewer img:hover {
+  cursor: move;
+}
+
+/* Error UI improvements */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #333;
+  text-align: center;
+  height: 100%;
+}
+
+.error-icon {
+  background-color: #FEE2E2;
+  border-radius: 9999px;
+  width: 6rem;
+  height: 6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.error-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.error-message {
+  max-width: 32rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-help {
+  font-size: 0.875rem;
+  max-width: 32rem;
+  color: #6B7280;
+  margin-bottom: 1.5rem;
+}
+
+/* Drag indicators */
+.drag-feedback {
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 100;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
