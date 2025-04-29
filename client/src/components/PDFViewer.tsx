@@ -400,15 +400,15 @@ const PDFViewer: React.FC = () => {
           <input
             ref={fileInputRef}
             type="file"
-            accept="application/pdf"
+            accept="application/pdf,image/jpeg,image/png,image/gif"
             className="hidden"
             onChange={handleFileUpload}
           />
         </div>
       )}
 
-      {/* Error state - shown when PDF loading fails */}
-      {pdfFile && loadError && (
+      {/* Error state - shown when file loading fails */}
+      {loadError && (
         <div className="h-full flex flex-col items-center justify-center text-secondary-dark">
           <div className="flex items-center justify-center bg-red-100 rounded-full w-24 h-24 mb-6">
             <svg 
@@ -426,19 +426,19 @@ const PDFViewer: React.FC = () => {
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
           </div>
-          <h2 className="text-xl font-medium mb-2">PDFの読み込みエラー</h2>
+          <h2 className="text-xl font-medium mb-2">ファイルの読み込みエラー</h2>
           <p className="text-center max-w-md mb-4">{loadError}</p>
           <Button
             className="bg-primary hover:bg-primary-light text-white"
             onClick={() => fileInputRef.current?.click()}
           >
             <FileUp className="mr-2 h-5 w-5" />
-            別のPDFを試す
+            別のファイルを試す
           </Button>
           <input
             ref={fileInputRef}
             type="file"
-            accept="application/pdf"
+            accept="application/pdf,image/jpeg,image/png,image/gif"
             className="hidden"
             onChange={handleFileUpload}
           />
