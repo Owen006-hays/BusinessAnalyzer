@@ -8,8 +8,14 @@ import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 
-// PDFビューワーの設定 - ワーカーの明示的な設定は行わず、フェイクワーカーを使用
-// エラーハンドリングを強化して、ユーザーが操作できるようにする
+// PDF.jsの設定 - フェイクワーカーを明示的に使うことで、
+// ワーカー読み込み失敗エラーを回避する
+try {
+  // この設定により、ワーカーなしでもPDFを表示できるようになる
+  (pdfjsLib as any).GlobalWorkerOptions.disableWorker = true;
+} catch (err) {
+  console.warn('PDF.js worker config error:', err);
+}
 
 const PDFViewer: React.FC = () => {
   const { pdfFile, setPdfFile } = useAnalysisContext();
@@ -39,11 +45,10 @@ const PDFViewer: React.FC = () => {
         // Load the PDF file
         const arrayBuffer = await pdfFile.arrayBuffer();
         
-        // 念のため、Worker設定をチェック
+        // フェイクワーカーモードの再確認
         try {
-          if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-            console.warn('PDF.js worker not set, using fake worker mode.');
-          }
+          // 明示的にワーカーなしモードを設定
+          (pdfjsLib as any).GlobalWorkerOptions.disableWorker = true;
         } catch (e) {
           console.warn('PDF.js worker config error:', e);
         }
@@ -171,24 +176,56 @@ const PDFViewer: React.FC = () => {
         // Provide visual indication of selection
         if (containerRef.current) {
           const container = containerRef.current;
+          
+          // 既存のインジケーターをクリア
+          const existingIndicators = container.querySelectorAll('.text-selection-indicator');
+          existingIndicators.forEach(indicator => {
+            if (indicator.parentNode) {
+              indicator.parentNode.removeChild(indicator);
+            }
+          });
+          
+          // 新しいインジケーターを作成
           const indicator = document.createElement('div');
           indicator.className = 'text-selection-indicator';
+          indicator.dataset.text = selectionText;
+          
+          // コンテナ内の相対位置を計算
+          const containerRect = container.getBoundingClientRect();
           indicator.style.position = 'absolute';
-          indicator.style.left = `${rect.left - container.getBoundingClientRect().left}px`;
-          indicator.style.top = `${rect.top - container.getBoundingClientRect().top}px`;
+          indicator.style.left = `${rect.left - containerRect.left}px`;
+          indicator.style.top = `${rect.top - containerRect.top}px`;
           indicator.style.width = `${rect.width}px`;
           indicator.style.height = `${rect.height}px`;
-          indicator.style.backgroundColor = 'rgba(66, 133, 244, 0.3)';
-          indicator.style.pointerEvents = 'none';
-          indicator.style.zIndex = '5';
+          
+          // インジケーターを追加
           container.appendChild(indicator);
           
-          // Automatically remove the indicator after a moment
+          // ドラッグ操作のフィードバックを表示
+          const feedback = document.createElement('div');
+          feedback.textContent = '👆 ドラッグして分析エリアに追加';
+          feedback.className = 'drag-feedback';
+          feedback.style.position = 'absolute';
+          feedback.style.left = `${rect.left - containerRect.left}px`;
+          feedback.style.top = `${rect.top - containerRect.top - 30}px`;
+          feedback.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+          feedback.style.color = 'white';
+          feedback.style.padding = '4px 8px';
+          feedback.style.borderRadius = '4px';
+          feedback.style.fontSize = '12px';
+          feedback.style.pointerEvents = 'none';
+          feedback.style.zIndex = '10';
+          container.appendChild(feedback);
+          
+          // 一定時間後に自動的に削除
           setTimeout(() => {
             if (indicator.parentNode) {
               indicator.parentNode.removeChild(indicator);
             }
-          }, 1500);
+            if (feedback.parentNode) {
+              feedback.parentNode.removeChild(feedback);
+            }
+          }, 3000);
         }
       }
     }
@@ -292,8 +329,46 @@ const PDFViewer: React.FC = () => {
         </div>
       )}
 
-      {/* PDF content - shown when PDF is loaded */}
-      {pdfFile && (
+      {/* Error state - shown when PDF loading fails */}
+      {pdfFile && loadError && (
+        <div className="h-full flex flex-col items-center justify-center text-secondary-dark">
+          <div className="flex items-center justify-center bg-red-100 rounded-full w-24 h-24 mb-6">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              className="h-12 w-12 text-red-500"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
+          <h2 className="text-xl font-medium mb-2">PDFの読み込みエラー</h2>
+          <p className="text-center max-w-md mb-4">{loadError}</p>
+          <Button
+            className="bg-primary hover:bg-primary-light text-white"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <FileUp className="mr-2 h-5 w-5" />
+            別のPDFを試す
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
+        </div>
+      )}
+
+      {/* PDF content - shown when PDF is loaded successfully */}
+      {pdfFile && !loadError && (
         <div className="flex-grow flex flex-col">
           {/* PDF toolbar */}
           <div className="flex items-center justify-between bg-secondary-light border-b border-secondary p-2">
