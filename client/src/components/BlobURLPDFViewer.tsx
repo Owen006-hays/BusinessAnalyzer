@@ -1,18 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAnalysisContext } from "@/context/AnalysisContext";
 import { Button } from "@/components/ui/button";
-import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Copy } from "lucide-react";
 
 /**
  * シンプルなPDFビューワーコンポーネント
  * PDFファイルや画像ファイルをブラウザのネイティブAPIを使って表示します
  */
 const BlobURLPDFViewer: React.FC = () => {
-  const { pdfFile, setPdfFile, imageFile, setImageFile } = useAnalysisContext();
+  const { pdfFile, setPdfFile, imageFile, setImageFile, addTextBox } = useAnalysisContext();
   const [pdfURL, setPdfURL] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedText, setSelectedText] = useState<string | null>(null);
+  const [showCopyButton, setShowCopyButton] = useState(false);
+  const [copyPosition, setCopyPosition] = useState({ x: 0, y: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const viewerRef = useRef<HTMLDivElement>(null);
   
   // PDFのURL生成
   useEffect(() => {
@@ -94,9 +98,84 @@ const BlobURLPDFViewer: React.FC = () => {
       setErrorMessage(`サポートされていないファイル形式です (${file.type || '不明'}). PDFまたは画像ファイル (JPEG, PNG, GIF) をアップロードしてください。`);
     }
   };
+  
+  // テキスト選択の検出
+  useEffect(() => {
+    const checkSelection = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0 || selection.toString().trim() === '') {
+        setSelectedText(null);
+        setShowCopyButton(false);
+        return;
+      }
+      
+      // 選択範囲を取得
+      const range = selection.getRangeAt(0);
+      const text = selection.toString().trim();
+      
+      if (text) {
+        const rangeRect = range.getBoundingClientRect();
+        if (viewerRef.current) {
+          const viewerRect = viewerRef.current.getBoundingClientRect();
+          
+          // ボタン位置を計算（選択範囲の右上）
+          setCopyPosition({
+            x: rangeRect.right - viewerRect.left,
+            y: rangeRect.top - viewerRect.top
+          });
+        }
+        
+        setSelectedText(text);
+        setShowCopyButton(true);
+      } else {
+        setSelectedText(null);
+        setShowCopyButton(false);
+      }
+    };
+    
+    // イベントリスナーを設定
+    document.addEventListener('selectionchange', checkSelection);
+    document.addEventListener('mouseup', checkSelection);
+    
+    return () => {
+      document.removeEventListener('selectionchange', checkSelection);
+      document.removeEventListener('mouseup', checkSelection);
+    };
+  }, []);
+  
+  // 選択したテキストをキャンバスに追加
+  const handleCopyToCanvas = () => {
+    if (selectedText && addTextBox) {
+      // キャンバスの中央付近にテキストを追加（座標はUI設計に応じて調整）
+      addTextBox(selectedText, 50, 100);
+      
+      // ボタンを非表示に
+      setShowCopyButton(false);
+      setSelectedText(null);
+      
+      // 選択をクリア
+      window.getSelection()?.removeAllRanges();
+    }
+  };
 
   return (
-    <section className="md:w-1/2 w-full md:h-full h-screen bg-white overflow-hidden flex flex-col">
+    <section className="md:w-1/2 w-full md:h-full h-screen bg-white overflow-hidden flex flex-col" ref={viewerRef}>
+      {/* コピーボタン - テキスト選択時のみ表示 */}
+      {showCopyButton && selectedText && (
+        <Button
+          size="sm"
+          className="absolute z-20 bg-primary text-white hover:bg-primary-light"
+          style={{
+            top: `${Math.max(copyPosition.y - 40, 10)}px`,
+            left: `${Math.min(copyPosition.x, viewerRef.current?.clientWidth || window.innerWidth - 120)}px`,
+          }}
+          onClick={handleCopyToCanvas}
+        >
+          <Copy className="mr-1 h-4 w-4" />
+          キャンバスに追加
+        </Button>
+      )}
+      
       {/* Empty state */}
       {!pdfURL && !imageUrl && !errorMessage && (
         <div className="h-full flex flex-col items-center justify-center text-secondary-dark">
@@ -212,6 +291,8 @@ const BlobURLPDFViewer: React.FC = () => {
               src={imageUrl} 
               alt="アップロードされた画像" 
               className="max-w-full max-h-[calc(100vh-8rem)] rounded shadow-lg"
+              // 画像からテキスト選択できるようにする
+              style={{ userSelect: 'text' }}
             />
             <Button
               variant="outline"

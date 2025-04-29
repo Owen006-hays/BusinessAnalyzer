@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import AnalysisCanvas from "@/components/AnalysisCanvas";
-import NewCanvasPDFViewer from "@/components/NewCanvasPDFViewer";
+import BlobURLPDFViewer from "@/components/BlobURLPDFViewer";
 import InstructionsModal from "@/components/InstructionsModal";
 import { useAnalysisContext } from "@/context/AnalysisContext";
 import { DndProvider } from "react-dnd";
@@ -39,7 +39,7 @@ const Home: React.FC = () => {
         
         <main className="flex flex-1 overflow-hidden md:flex-row flex-col">
           <AnalysisCanvas />
-          <NewCanvasPDFViewer />
+          <BlobURLPDFViewer />
         </main>
 
         {showInstructions && (
