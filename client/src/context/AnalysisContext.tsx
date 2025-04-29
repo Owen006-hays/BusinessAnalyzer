@@ -58,6 +58,11 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
   const [analysisId, setAnalysisId] = useState<number>(1); // Default analysis ID
   const [analysisName, setAnalysisName] = useState<string>("New Analysis");
   
+  // State for text boxes
+  const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
+  // テキストボックスのキャッシュをシートごとに管理（シート間移動時に位置を維持するため）
+  const [textBoxesCache, setTextBoxesCache] = useState<Map<number, TextBox[]>>(new Map());
+  
   // State for sheets
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [currentSheetId, setCurrentSheetId] = useState<number>(1); // デフォルトシートID
@@ -76,9 +81,6 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       return newMap;
     });
   }, [currentSheetId]);
-  
-  // State for textboxes
-  const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
   
   // Refs
   const canvasRef = useRef<HTMLDivElement>(null);
