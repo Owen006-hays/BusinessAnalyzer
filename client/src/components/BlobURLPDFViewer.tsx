@@ -214,7 +214,7 @@ const BlobURLPDFViewer: React.FC = () => {
   };
 
   return (
-    <section className="md:w-1/2 w-full md:h-full h-screen bg-white overflow-hidden flex flex-col" ref={viewerRef}>
+    <section className="w-full h-full bg-white overflow-hidden flex flex-col" ref={viewerRef}>
       {/* コピーボタン - テキスト選択時のみ表示 */}
       {showCopyButton && selectedText && (
         <div
