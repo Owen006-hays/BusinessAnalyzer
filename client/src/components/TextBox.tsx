@@ -77,8 +77,9 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
       dimensions.height as number;
     
     const handleMouseMove = (moveEvent: MouseEvent) => {
-      const newWidth = Math.max(100, startWidth + (moveEvent.clientX - startX));
-      const newHeight = Math.max(50, startHeight + (moveEvent.clientY - startY));
+      // サイズ制限を削除
+      const newWidth = startWidth + (moveEvent.clientX - startX);
+      const newHeight = startHeight + (moveEvent.clientY - startY);
       
       setDimensions({
         width: newWidth,
@@ -417,8 +418,9 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
           
           const handleTouchMove = (moveEvent: TouchEvent) => {
             const touch = moveEvent.touches[0];
-            const newWidth = Math.max(100, startWidth + (touch.clientX - startX));
-            const newHeight = Math.max(50, startHeight + (touch.clientY - startY));
+            // タッチイベントでもサイズ制限を削除
+            const newWidth = startWidth + (touch.clientX - startX);
+            const newHeight = startHeight + (touch.clientY - startY);
             
             setDimensions({
               width: newWidth,
