@@ -37,7 +37,7 @@
 }
 
 .text-layer span {
-  color: transparent;
+  color: transparent !important;
   position: absolute;
   white-space: pre;
   cursor: text;
@@ -46,14 +46,17 @@
   -webkit-user-select: text;
   -moz-user-select: text;
   -ms-user-select: text;
+  pointer-events: auto !important;
 }
 
 .text-layer span:hover {
   background-color: rgba(66, 153, 225, 0.2);
+  color: rgba(0, 0, 0, 0.6) !important;
 }
 
 .text-layer span::selection {
   background: rgba(66, 153, 225, 0.4);
+  color: black !important;
 }
 
 .text-selection-indicator {
@@ -101,6 +104,8 @@
   transform: translateY(-10px);
   transition: all 0.3s ease;
   pointer-events: none;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
 .pdf-container:hover .text-selectable-hint {

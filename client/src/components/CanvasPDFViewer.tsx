@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAnalysisContext } from "@/context/AnalysisContext";
 import { Button } from "@/components/ui/button";
-import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Copy } from "lucide-react";
 
 /**
  * キャンバスベースのPDFビューワー
@@ -227,6 +227,8 @@ const CanvasPDFViewer: React.FC = () => {
             textItem.style.cursor = 'text';
             textItem.style.userSelect = 'text';
             textItem.style.pointerEvents = 'auto';
+            textItem.style.opacity = '0.01';
+            textItem.style.color = '#000';
             
             // 要素をレイヤーに追加
             textLayerDiv.appendChild(textItem);
@@ -458,7 +460,10 @@ const CanvasPDFViewer: React.FC = () => {
               />
               <div className="text-selectable-hint">
                 <span className="flex items-center">
-                  <Copy className="w-4 h-4 mr-1" />
+                  <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
                   テキストを選択してコピーできます
                 </span>
               </div>
