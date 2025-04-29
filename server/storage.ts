@@ -50,6 +50,7 @@ export class MemStorage implements IStorage {
       name: "New Analysis",
       template: null,
       pdfName: null,
+      imageName: null,
       createdAt: new Date().toISOString(),
     };
     this.analyses.set(defaultAnalysis.id, defaultAnalysis);

@@ -18,7 +18,7 @@ try {
 }
 
 const PDFViewer: React.FC = () => {
-  const { pdfFile, setPdfFile } = useAnalysisContext();
+  const { pdfFile, setPdfFile, imageFile, setImageFile } = useAnalysisContext();
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -32,10 +32,40 @@ const PDFViewer: React.FC = () => {
   
   // エラー状態追加
   const [loadError, setLoadError] = useState<string | null>(null);
+  
+  // 画像表示用state
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
+  // Handle image loading
+  useEffect(() => {
+    if (!imageFile) {
+      setImageUrl(null);
+      return;
+    }
+    
+    // エラー状態をリセット
+    setLoadError(null);
+    
+    // 画像ファイルの場合は画像URLを作成
+    if (imageFile.type.startsWith('image/')) {
+      const url = URL.createObjectURL(imageFile);
+      setImageUrl(url);
+      
+      // コンポーネントがアンマウントされた時にURLを解放
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } else {
+      setLoadError('サポートされていない画像フォーマットです');
+    }
+  }, [imageFile]);
+  
   // Handle PDF loading
   useEffect(() => {
     if (!pdfFile) return;
+    
+    // 画像URLをクリア
+    setImageUrl(null);
     
     // エラー状態をリセット
     setLoadError(null);
