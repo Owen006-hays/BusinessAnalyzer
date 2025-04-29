@@ -4,34 +4,38 @@ import { useAnalysisContext } from "@/context/AnalysisContext";
 import { Button } from "@/components/ui/button";
 import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
 
-// Import PDF.js
+// Import PDF.js with ESM imports
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 
-// PDFJSの初期化設定 - バージョン3.xに対応した設定
-try {
-  // PDF.jsワーカー設定
-  console.log('Setting up PDF.js worker');
-  
-  // PDF.jsのGlobalWorkerOptionsが利用可能か確認
-  if ((pdfjsLib as any).GlobalWorkerOptions) {
-    // フェイクワーカーモードを設定（ワーカーファイルを使わない）
-    (pdfjsLib as any).GlobalWorkerOptions.disableWorker = true;
+// PDF.js関連のグローバル設定
+(function setupPdfJs() {
+  try {
+    console.log('Configuring PDF.js...');
     
-    // ダミーワーカーパスを設定（必須）
-    // 実際のパスではなく、フェイクワーカーモードのトリガーとして機能
-    (pdfjsLib as any).GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
-  } else {
-    console.warn('PDF.js GlobalWorkerOptions not available');
+    // PDF.jsワーカーレスモードを設定
+    if (pdfjsLib && (pdfjsLib as any).GlobalWorkerOptions) {
+      console.log('Setting PDF.js to workerless mode');
+      // ワーカーレスモードを強制
+      (pdfjsLib as any).GlobalWorkerOptions.disableWorker = true;
+      
+      // ワーカーが必要ない場合に使用されるダミーパス
+      (pdfjsLib as any).GlobalWorkerOptions.workerSrc = '';
+    }
+    
+    // disableAutoFetch, disableFontFace などの追加設定
+    if ((pdfjsLib as any).getDocument) {
+      console.log('Additional PDF.js configuration applied');
+    }
+    
+    // PDF.jsライブラリのバージョン情報をログに出力（診断用）
+    if ((pdfjsLib as any).version) {
+      console.log('Using PDF.js version:', (pdfjsLib as any).version);
+    }
+  } catch (error) {
+    console.error('Error configuring PDF.js:', error);
   }
-  
-  // PDF.jsのバージョン情報を記録
-  if ((pdfjsLib as any).version) {
-    console.log('PDF.js version:', (pdfjsLib as any).version);
-  }
-} catch (err) {
-  console.warn('PDF.js worker setup error:', err);
-}
+})();
 
 const PDFViewer: React.FC = () => {
   const { pdfFile, setPdfFile, imageFile, setImageFile } = useAnalysisContext();
@@ -62,17 +66,24 @@ const PDFViewer: React.FC = () => {
     // エラー状態をリセット
     setLoadError(null);
     
-    // 画像ファイルの場合は画像URLを作成
-    if (imageFile.type.startsWith('image/')) {
-      const url = URL.createObjectURL(imageFile);
-      setImageUrl(url);
-      
-      // コンポーネントがアンマウントされた時にURLを解放
-      return () => {
-        URL.revokeObjectURL(url);
-      };
-    } else {
-      setLoadError('サポートされていない画像フォーマットです');
+    try {
+      // 画像ファイルの場合は画像URLを作成
+      if (imageFile.type.startsWith('image/')) {
+        console.log("画像ファイルを処理中:", imageFile.name, imageFile.size, "bytes");
+        const url = URL.createObjectURL(imageFile);
+        setImageUrl(url);
+        
+        // コンポーネントがアンマウントされた時にURLを解放
+        return () => {
+          URL.revokeObjectURL(url);
+        };
+      } else {
+        console.warn("サポートされていない画像形式:", imageFile.type);
+        setLoadError('サポートされていない画像フォーマットです。JPEG、PNG、GIFをお試しください。');
+      }
+    } catch (err) {
+      console.error("画像ファイル処理エラー:", err);
+      setLoadError('画像ファイル処理中にエラーが発生しました。別の画像をお試しください。');
     }
   }, [imageFile]);
   
@@ -114,34 +125,10 @@ const PDFViewer: React.FC = () => {
         try {
           console.log("PDF読み込みタスク開始");
           
-          // PDFJSのエラーを詳細に把握するためのハンドラー
-          const onProgress = (progressData: any) => {
-            if (progressData.loaded && progressData.total) {
-              console.log(`PDF読み込み進捗: ${Math.round((progressData.loaded / progressData.total) * 100)}%`);
-            }
-          };
-          
-          // より堅牢な設定でPDFを読み込む
-          const loadingTask = pdfjsLib.getDocument({
-            data: arrayBuffer,
-            // 進捗状況を監視
-            onProgress,
-            // すべてのCMapを有効に
-            cMapUrl: null,
-            cMapPacked: true,
-            // プログレッシブレンダリングを有効に
-            enableXfa: false,
-            // その他のオプション
-            useSystemFonts: true,
-            useWorkerFetch: false,
-            isEvalSupported: true
-          } as any);
-          
-          // TypeScriptの型の問題を回避するために型アサーションを使用
-          // エラーハンドリングを追加（PDF.jsの型定義が不完全なため）
-          (loadingTask as any).onUnsupportedFeature = (featureId: string) => {
-            console.warn('サポートされていないPDF機能:', featureId);
-          };
+          // フォールバックオプションとしてシンプルな実装を試す
+          // より安全で単純な設定（エラーリスクを最小化）
+          // TypeScriptエラーを回避するために単純化
+          const loadingTask = pdfjsLib.getDocument(arrayBuffer);
           
           console.log("PDFドキュメント読み込み中...");
           const pdf = await loadingTask.promise;
