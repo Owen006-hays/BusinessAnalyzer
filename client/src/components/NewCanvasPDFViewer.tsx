@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAnalysisContext } from "@/context/AnalysisContext";
 import { Button } from "@/components/ui/button";
-import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Copy } from "lucide-react";
+import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
 
 /**
  * キャンバスベースのPDFビューワー
- * CDNからのPDF.jsを使用してPDFをレンダリングします
+ * ネイティブなテキスト選択を実装
  */
 const CanvasPDFViewer: React.FC = () => {
   const { pdfFile, setPdfFile, imageFile, setImageFile } = useAnalysisContext();
@@ -144,6 +144,9 @@ const CanvasPDFViewer: React.FC = () => {
     loadImage();
   }, [imageFile]);
   
+  // 選択イベントを管理するための変数
+  const selectionChangeListenerRef = useRef<() => void>(() => {});
+  
   // ページのレンダリング関数
   const renderPage = async (pdf: any, pageNumber: number, scale: number) => {
     const canvas = canvasRef.current;
@@ -175,6 +178,11 @@ const CanvasPDFViewer: React.FC = () => {
           existingTextLayer.remove();
         }
         
+        // 以前の選択変更リスナーを削除
+        if (selectionChangeListenerRef.current) {
+          document.removeEventListener('selectionchange', selectionChangeListenerRef.current);
+        }
+        
         // テキストコンテンツを取得
         const textContent = await page.getTextContent();
         
@@ -193,6 +201,12 @@ const CanvasPDFViewer: React.FC = () => {
         textLayerDiv.style.height = `${viewport.height}px`;
         textLayerDiv.style.pointerEvents = 'auto';
         
+        // 選択を有効化するためのスタイル設定
+        textLayerDiv.style.userSelect = 'text';
+        textLayerDiv.style.WebkitUserSelect = 'text';
+        // TypeScript で認識できるプロパティ名を使用
+        (textLayerDiv.style as any).MsUserSelect = 'text';
+        
         // キャンバスの親要素に追加（同じ位置に配置）
         const canvasWrapper = canvas.parentNode as HTMLElement;
         if (canvasWrapper) {
@@ -210,302 +224,20 @@ const CanvasPDFViewer: React.FC = () => {
           textLayerContainer.style.width = `${canvas.width}px`;
           textLayerContainer.style.height = `${canvas.height}px`;
           textLayerContainer.appendChild(textLayerDiv);
-          (canvasWrapper as HTMLElement).appendChild(textLayerContainer);
+          canvasWrapper.appendChild(textLayerContainer);
           
           // ネイティブなテキスト選択のためのセットアップ
           let selectedRangeText = '';
           let selectionTimeout: ReturnType<typeof setTimeout> | null = null;
           
-          // テキスト選択を可能にするための共通スタイルを設定
-          const enableTextSelection = () => {
-            // テキストレイヤー全体を選択可能に
-            textLayerDiv.style.userSelect = 'text';
-            textLayerDiv.style.webkitUserSelect = 'text';
-            textLayerDiv.style.msUserSelect = 'text';
-            textLayerDiv.style.pointerEvents = 'auto';
-            
-            // すべての文字要素を選択可能に
-            Array.from(textLayerDiv.children).forEach((child) => {
-              const el = child as HTMLElement;
-              el.style.color = 'black';  // テキストを黒色にして見えるように
-              el.style.userSelect = 'text';
-              el.style.webkitUserSelect = 'text';
-              el.style.msUserSelect = 'text';
-              el.style.pointerEvents = 'auto';
-              el.style.cursor = 'text';
-            });
-          };
-          
-          // マウスドラッグ選択のイベントリスナー
-          textLayerContainer.addEventListener('mousedown', (e) => {
-            // 左クリックのみを処理
-            if (e.button !== 0) return;
-            
-            // 既存の選択をクリア
-            if (selectionRect && selectionRect.parentNode) {
-              selectionRect.parentNode.removeChild(selectionRect);
-            }
-            
-            // 前回の選択テキスト要素をリセット
-            selectedElements.forEach(el => {
-              el.style.backgroundColor = '';
-              el.style.opacity = '0';
-            });
-            selectedElements = [];
-            
-            // コピーボタンや選択ツールチップが残っていれば削除
-            const oldCopyButtons = document.querySelectorAll('.copy-button');
-            oldCopyButtons.forEach(btn => btn.parentNode?.removeChild(btn));
-            
-            const oldTooltips = document.querySelectorAll('.selection-tooltip');
-            oldTooltips.forEach(tip => tip.parentNode?.removeChild(tip));
-            
-            isSelecting = true;
-            // 正確な位置を計算
-            const containerRect = textLayerContainer.getBoundingClientRect();
-            selectionStart = {
-              x: e.clientX - window.scrollX,
-              y: e.clientY - window.scrollY
-            };
-            
-            // 新しい選択範囲を作成
-            selectionRect = createSelectionRect();
-            selectionRect.style.left = `${e.clientX - containerRect.left}px`;
-            selectionRect.style.top = `${e.clientY - containerRect.top}px`;
-            selectionRect.style.width = '0px';
-            selectionRect.style.height = '0px';
-            textLayerContainer.appendChild(selectionRect);
-            
-            e.preventDefault();
-          });
-          
-          textLayerContainer.addEventListener('mousemove', (e) => {
-            if (!isSelecting || !selectionStart || !selectionRect) return;
-            
-            const currentX = e.clientX;
-            const currentY = e.clientY;
-            const containerRect = textLayerContainer.getBoundingClientRect();
-            
-            // 選択範囲の位置とサイズを計算
-            const left = Math.min(selectionStart.x, currentX) - containerRect.left;
-            const top = Math.min(selectionStart.y, currentY) - containerRect.top;
-            const width = Math.abs(currentX - selectionStart.x);
-            const height = Math.abs(currentY - selectionStart.y);
-            
-            // 選択範囲を更新
-            selectionRect.style.left = `${left}px`;
-            selectionRect.style.top = `${top}px`;
-            selectionRect.style.width = `${width}px`;
-            selectionRect.style.height = `${height}px`;
-            
-            // 選択範囲内のテキスト要素をハイライト
-            const selectionBounds = {
-              left,
-              top,
-              right: left + width,
-              bottom: top + height
-            };
-            
-            // すべての選択をリセット
-            selectedElements.forEach(el => {
-              el.style.backgroundColor = '';
-              el.style.opacity = '0';
-            });
-            selectedElements = [];
-            
-            // 選択範囲内のテキスト要素を検出して選択する
-            Array.from(textLayerDiv.children).forEach((child) => {
-              const el = child as HTMLElement;
-              const elLeft = parseFloat(el.style.left);
-              const elTop = parseFloat(el.style.top);
-              const elWidth = el.getBoundingClientRect().width;
-              const elHeight = el.getBoundingClientRect().height;
-              const elRight = elLeft + elWidth;
-              const elBottom = elTop + elHeight;
-              
-              // テキスト要素が選択範囲と十分に重なるかチェック
-              // より正確なオーバーラップロジック
-              const overlaps = !(
-                elRight < selectionBounds.left ||
-                elLeft > selectionBounds.right ||
-                elBottom < selectionBounds.top ||
-                elTop > selectionBounds.bottom
-              );
-              
-              const minIntersectionRatio = 0.35; // 35%以上の重なりを要求（より厳密に）
-              
-              // 重なっている面積の比率を計算
-              if (overlaps) {
-                const intersectionLeft = Math.max(elLeft, selectionBounds.left);
-                const intersectionTop = Math.max(elTop, selectionBounds.top);
-                const intersectionRight = Math.min(elRight, selectionBounds.right);
-                const intersectionBottom = Math.min(elBottom, selectionBounds.bottom);
-                
-                const intersectionWidth = Math.max(0, intersectionRight - intersectionLeft);
-                const intersectionHeight = Math.max(0, intersectionBottom - intersectionTop);
-                const intersectionArea = intersectionWidth * intersectionHeight;
-                
-                const elementArea = elWidth * elHeight;
-                const intersectionRatio = elementArea > 0 ? intersectionArea / elementArea : 0;
-                
-                if (intersectionRatio >= minIntersectionRatio) {
-                  el.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
-                  el.style.opacity = '0.8';
-                  if (!selectedElements.includes(el)) {
-                    selectedElements.push(el);
-                  }
-                }
-              }
-            });
-          });
-          
-          textLayerContainer.addEventListener('mouseup', (e) => {
-            if (!isSelecting) return;
-            
-            isSelecting = false;
-            
-            // 選択したテキストを処理
-            if (selectedElements.length > 0) {
-              // 選択テキストをコピー可能にする
-              const selectedTexts = selectedElements.map(el => el.textContent).join(' ');
-              
-              // 選択されたテキストをクリップボードにコピーするための非表示の要素を作成
-              const tempTextarea = document.createElement('textarea');
-              tempTextarea.value = selectedTexts;
-              tempTextarea.style.position = 'absolute';
-              tempTextarea.style.left = '-9999px';
-              document.body.appendChild(tempTextarea);
-              
-              // コピーボタンを作成
-              const copyButton = document.createElement('button');
-              copyButton.innerHTML = 'コピー';
-              copyButton.className = 'copy-button';
-              copyButton.style.position = 'absolute';
-              copyButton.style.left = `${e.clientX - textLayerContainer.getBoundingClientRect().left + 10}px`;
-              copyButton.style.top = `${e.clientY - textLayerContainer.getBoundingClientRect().top - 40}px`;
-              copyButton.style.backgroundColor = 'rgba(66, 153, 225, 0.9)';
-              copyButton.style.color = 'white';
-              copyButton.style.border = 'none';
-              copyButton.style.borderRadius = '4px';
-              copyButton.style.padding = '4px 12px';
-              copyButton.style.fontSize = '12px';
-              copyButton.style.cursor = 'pointer';
-              copyButton.style.zIndex = '200';
-              copyButton.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-              textLayerContainer.appendChild(copyButton);
-              
-              // コピーボタンのクリックイベント
-              copyButton.addEventListener('click', () => {
-                // 新しいClipboard APIを試みる
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                  navigator.clipboard.writeText(selectedTexts)
-                    .then(() => {
-                      // コピー成功のフィードバック
-                      copyButton.innerHTML = 'コピー完了!';
-                      copyButton.style.backgroundColor = '#16a34a'; // green
-                    })
-                    .catch(() => {
-                      // フォールバック: 旧式のexecCommandを使用
-                      tempTextarea.select();
-                      document.execCommand('copy');
-                      copyButton.innerHTML = 'コピー完了!';
-                      copyButton.style.backgroundColor = '#16a34a'; // green
-                    })
-                    .finally(() => {
-                      // リソースをクリーンアップ
-                      document.body.removeChild(tempTextarea);
-                      // 少し待ってから消す
-                      setTimeout(() => {
-                        if (copyButton.parentNode) {
-                          copyButton.parentNode.removeChild(copyButton);
-                        }
-                      }, 1500);
-                    });
-                } else {
-                  // 旧式のexecCommandを使用
-                  tempTextarea.select();
-                  document.execCommand('copy');
-                  document.body.removeChild(tempTextarea);
-                  
-                  // コピー成功のフィードバック
-                  copyButton.innerHTML = 'コピー完了!';
-                  copyButton.style.backgroundColor = '#16a34a'; // green
-                  
-                  // 少し待ってから消す
-                  setTimeout(() => {
-                    if (copyButton.parentNode) {
-                      copyButton.parentNode.removeChild(copyButton);
-                    }
-                  }, 1500);
-                }
-              });
-              
-              // 選択されたテキストを通知
-              const tooltip = document.createElement('div');
-              tooltip.className = 'selection-tooltip';
-              tooltip.textContent = `${selectedElements.length}文字を選択しました`;
-              tooltip.style.position = 'absolute';
-              tooltip.style.left = `${e.clientX - textLayerContainer.getBoundingClientRect().left}px`;
-              tooltip.style.top = `${e.clientY - textLayerContainer.getBoundingClientRect().top - 70}px`;
-              tooltip.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-              tooltip.style.color = 'white';
-              tooltip.style.padding = '5px 10px';
-              tooltip.style.borderRadius = '4px';
-              tooltip.style.fontSize = '12px';
-              tooltip.style.zIndex = '100';
-              tooltip.style.pointerEvents = 'none';
-              textLayerContainer.appendChild(tooltip);
-              
-              // 選択のフィードバックを表示
-              console.log('選択されたテキスト:', selectedTexts);
-              
-              // 選択済みテキストのスタイル維持
-              selectedElements.forEach(el => {
-                el.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
-                el.style.opacity = '0.8';
-                // コピーをサポートするために操作可能にする
-                el.style.pointerEvents = 'auto';
-                el.style.userSelect = 'text';
-              });
-              
-              // タイマーを設定して、ツールチップと選択状態を管理
-              setTimeout(() => {
-                if (tooltip.parentNode) {
-                  tooltip.parentNode.removeChild(tooltip);
-                }
-                
-                // 5秒後にコピーボタンが残っていたら消す
-                setTimeout(() => {
-                  if (copyButton.parentNode) {
-                    copyButton.parentNode.removeChild(copyButton);
-                  }
-                  document.body.removeChild(tempTextarea);
-                }, 3000);
-              }, 2000);
-            }
-            
-            // 選択モードを終了
-            selectionStart = null;
-            
-            // 選択範囲の表示を削除
-            if (selectionRect && selectionRect.parentNode) {
-              selectionRect.parentNode.removeChild(selectionRect);
-              selectionRect = null;
-            }
-          });
-          
-          // テキストアイテムを配置
-          const fontScale = 1.0;
-          
-          // テキスト要素の重複防止用マップ（位置をキーとして使用）
+          // テキスト要素の重複防止用マップ
           const charPositionMap = new Map();
           
           // テキストコンテンツのアイテムを処理
-          // 文字単位で細かく分割して処理する
           for (const item of textContent.items) {
             if (!item.str) continue; // 空文字列はスキップ
             
-            // より精確な文字単位の処理のために文字を分割
+            // 文字の位置情報を取得
             const [fontHeight, fontAscent] = item.transform.slice(3, 5);
             const baseLeft = Math.round(item.transform[4] * scale * 10) / 10; // 小数点1桁で丸める
             const baseTop = Math.round((item.transform[5] * scale - fontAscent * scale) * 10) / 10;
@@ -514,11 +246,11 @@ const CanvasPDFViewer: React.FC = () => {
             // このテキスト要素が持つすべての文字の幅情報（あれば）
             const charWidths = item.width ? new Array(item.str.length).fill(item.width / item.str.length) : null;
             
-            // 1文字ずつ処理して正確な位置に配置
+            // 1文字ずつ処理
             for (let i = 0; i < item.str.length; i++) {
               const char = item.str[i];
               
-              // 各文字の開始位置を計算（前の文字の累積幅に基づく）
+              // 文字の開始位置を計算（前の文字の累積幅に基づく）
               let charLeft = baseLeft;
               if (charWidths) {
                 for (let j = 0; j < i; j++) {
@@ -553,18 +285,21 @@ const CanvasPDFViewer: React.FC = () => {
                 }
               }
               
-              // 1文字のテキスト要素を作成
+              // 文字要素を作成
               const charElement = document.createElement('span');
               charElement.textContent = char;
               charElement.className = 'pdf-char';
               charElement.style.position = 'absolute';
+              charElement.style.color = 'black'; // 実際に表示する
               charElement.style.whiteSpace = 'pre';
               charElement.style.cursor = 'text';
+              
+              // 選択可能に設定
               charElement.style.userSelect = 'text';
+              charElement.style.WebkitUserSelect = 'text';
+              // TypeScript で認識できるプロパティ名を使用
+              (charElement.style as any).MsUserSelect = 'text';
               charElement.style.pointerEvents = 'auto';
-              charElement.style.opacity = '0';
-              charElement.style.color = '#000';
-              charElement.dataset.char = char;
               
               // 要素の位置とサイズを設定
               charElement.style.left = `${charLeft}px`;
@@ -579,83 +314,150 @@ const CanvasPDFViewer: React.FC = () => {
               charPositionMap.set(posKey, charElement);
               // DOM に追加
               textLayerDiv.appendChild(charElement);
-              
-              // 文字の正確な位置情報を保存（イベントハンドラで使用）
-              const charPosition = {
-                left: charLeft,
-                top: baseTop,
-                width: charWidths ? charWidths[i] : fontSize * 0.6,
-                height: fontSize * 1.2
-              };
-              
-              // ホバー効果（カーソル位置が実際に要素の上にある場合のみハイライト）
-              charElement.addEventListener('mouseenter', (e) => {
-                if (!isSelecting) {
-                  // 要素内のカーソル位置を正確に判定
-                  const rect = charElement.getBoundingClientRect();
-                  const mouseX = e.clientX;
-                  const mouseY = e.clientY;
-                  
-                  // カーソルが実際に文字の領域内にあるかチェック
-                  if (
-                    mouseX >= rect.left && 
-                    mouseX <= rect.right && 
-                    mouseY >= rect.top && 
-                    mouseY <= rect.bottom
-                  ) {
-                    // この要素を最前面に出す
-                    charElement.classList.add('active');
-                    charElement.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
-                    charElement.style.opacity = '0.8';
-                    
-                    // 他のハイライトを消す（重なりの問題解決）
-                    const otherElements = Array.from(textLayerDiv.children) as HTMLElement[];
-                    otherElements.forEach(el => {
-                      if (el !== charElement && !selectedElements.includes(el)) {
-                        // 選択されていない要素の場合だけ非表示に
-                        el.classList.remove('active');
-                        el.style.backgroundColor = 'transparent';
-                        el.style.opacity = '0';
-                      }
-                    });
-                  }
-                }
-              });
-              
-              charElement.addEventListener('mouseleave', (e) => {
-                if (!isSelecting && !selectedElements.includes(charElement)) {
-                  // ページ全体の要素の中で特定の座標のどれが最前面かを判断する
-                  const rect = charElement.getBoundingClientRect();
-                  const mouseX = e.clientX;
-                  const mouseY = e.clientY;
-                  
-                  // 本当に要素から離れたらアクティブを解除
-                  if (
-                    mouseX < rect.left || 
-                    mouseX > rect.right || 
-                    mouseY < rect.top || 
-                    mouseY > rect.bottom
-                  ) {
-                    charElement.classList.remove('active');
-                    charElement.style.backgroundColor = 'transparent';
-                    charElement.style.opacity = '0';
-                    
-                    // 既存の選択は維持
-                    if (selectedElements.includes(charElement)) {
-                      charElement.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
-                      charElement.style.opacity = '0.8';
-                    }
-                  }
-                }
-              });
-              
-              // クリック選択時の情報を保持
-              charElement.dataset.positionX = `${charLeft}`;
-              charElement.dataset.positionY = `${baseTop}`;
-              charElement.dataset.width = charWidths ? `${charWidths[i]}` : `${fontSize * 0.6}`;
-              charElement.dataset.height = `${fontSize * 1.2}`;
             }
           }
+          
+          // テキスト選択の変更を検出する関数
+          const handleSelectionChange = () => {
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) return;
+            
+            const range = selection.getRangeAt(0);
+            if (!range) return;
+            
+            // 選択されたテキストを取得
+            selectedRangeText = range.toString().trim();
+            
+            // 選択範囲が空の場合は処理終了
+            if (!selectedRangeText) {
+              return;
+            }
+            
+            // 選択テキストが変更されたことをログに出力
+            console.log('選択されたテキスト:', selectedRangeText);
+            
+            // 既存のコピーボタンを削除
+            const oldCopyButtons = document.querySelectorAll('.copy-button');
+            oldCopyButtons.forEach(btn => btn.parentNode?.removeChild(btn));
+            
+            // 選択範囲の情報を取得
+            const selectionRect = range.getBoundingClientRect();
+            if (!selectionRect || selectionRect.width === 0 || selectionRect.height === 0) return;
+            
+            // コピーボタンの追加をわずかに遅延させて、選択操作の完了を保証
+            if (selectionTimeout) {
+              clearTimeout(selectionTimeout);
+            }
+            
+            selectionTimeout = setTimeout(() => {
+              // 選択テキストが存在する場合のみ処理
+              if (selectedRangeText) {
+                // コピーボタンを作成
+                const copyButton = document.createElement('button');
+                copyButton.innerHTML = 'コピー';
+                copyButton.className = 'copy-button';
+                copyButton.style.position = 'absolute';
+                
+                // ボタンの位置を選択範囲の上部に配置
+                const containerRect = textLayerContainer.getBoundingClientRect();
+                copyButton.style.left = `${selectionRect.right - containerRect.left - 40}px`;
+                copyButton.style.top = `${selectionRect.top - containerRect.top - 30}px`;
+                
+                // ボタンのスタイル
+                copyButton.style.backgroundColor = 'rgba(66, 153, 225, 0.9)';
+                copyButton.style.color = 'white';
+                copyButton.style.border = 'none';
+                copyButton.style.borderRadius = '4px';
+                copyButton.style.padding = '4px 12px';
+                copyButton.style.fontSize = '12px';
+                copyButton.style.cursor = 'pointer';
+                copyButton.style.zIndex = '200';
+                copyButton.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+                textLayerContainer.appendChild(copyButton);
+                
+                // コピーボタンのクリックイベント
+                copyButton.addEventListener('click', () => {
+                  // 現代的なClipboard APIを使用
+                  if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(selectedRangeText)
+                      .then(() => {
+                        // コピー成功のフィードバック
+                        copyButton.innerHTML = 'コピー完了!';
+                        copyButton.style.backgroundColor = '#16a34a'; // green
+                        
+                        // 一定時間後にボタンを非表示
+                        setTimeout(() => {
+                          if (copyButton.parentNode) {
+                            copyButton.parentNode.removeChild(copyButton);
+                          }
+                        }, 1500);
+                      })
+                      .catch(err => {
+                        console.error('クリップボードへのコピーに失敗:', err);
+                        // フォールバック: テキストエリアを使用
+                        const textarea = document.createElement('textarea');
+                        textarea.value = selectedRangeText;
+                        textarea.style.position = 'absolute';
+                        textarea.style.left = '-9999px';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        
+                        copyButton.innerHTML = 'コピー完了!';
+                        copyButton.style.backgroundColor = '#16a34a';
+                        
+                        setTimeout(() => {
+                          if (copyButton.parentNode) {
+                            copyButton.parentNode.removeChild(copyButton);
+                          }
+                        }, 1500);
+                      });
+                  } else {
+                    // 旧式ブラウザ用フォールバック
+                    const textarea = document.createElement('textarea');
+                    textarea.value = selectedRangeText;
+                    textarea.style.position = 'absolute';
+                    textarea.style.left = '-9999px';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    
+                    copyButton.innerHTML = 'コピー完了!';
+                    copyButton.style.backgroundColor = '#16a34a';
+                    
+                    setTimeout(() => {
+                      if (copyButton.parentNode) {
+                        copyButton.parentNode.removeChild(copyButton);
+                      }
+                    }, 1500);
+                  }
+                });
+                
+                // ボタンは一定時間後に自動的に非表示
+                setTimeout(() => {
+                  if (copyButton.parentNode) {
+                    copyButton.parentNode.removeChild(copyButton);
+                  }
+                }, 5000);
+              }
+            }, 200); // 短い遅延で選択完了を待つ
+          };
+          
+          // 選択変更イベントリスナーを追加してリファレンスを保存
+          document.addEventListener('selectionchange', handleSelectionChange);
+          selectionChangeListenerRef.current = handleSelectionChange;
+          
+          // テキストコンテナのクリックイベント
+          textLayerContainer.addEventListener('mousedown', (e) => {
+            // 左クリックのみ処理
+            if (e.button !== 0) return;
+            
+            // 既存のコピーボタンをクリア
+            const oldCopyButtons = document.querySelectorAll('.copy-button');
+            oldCopyButtons.forEach(btn => btn.parentNode?.removeChild(btn));
+          });
         }
         
         console.log('テキストレイヤーを生成しました（コピー&ペースト機能が利用可能）');
@@ -707,6 +509,15 @@ const CanvasPDFViewer: React.FC = () => {
   const zoomOut = () => {
     setZoom(prev => Math.max(prev - 0.1, 0.5));
   };
+  
+  // コンポーネントがアンマウントされるときにイベントリスナーを削除
+  useEffect(() => {
+    return () => {
+      if (selectionChangeListenerRef.current) {
+        document.removeEventListener('selectionchange', selectionChangeListenerRef.current);
+      }
+    };
+  }, []);
   
   return (
     <section className="md:w-1/2 w-full md:h-full h-screen bg-white overflow-hidden flex flex-col">
@@ -865,11 +676,11 @@ const CanvasPDFViewer: React.FC = () => {
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                     </svg>
-                    テキストをドラッグ選択してコピーできます
+                    テキストを選択してコピーできます
                   </span>
                 </div>
                 <div className="text-xs text-gray-500 mt-2 mb-1 flex justify-center">
-                  <span>選択可能な文字は青色でハイライトされます</span>
+                  <span>選択可能なテキストが黒色で表示されます</span>
                 </div>
               </div>
             </div>

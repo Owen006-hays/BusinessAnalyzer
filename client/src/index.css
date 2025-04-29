@@ -283,7 +283,7 @@
 
 /* 1文字ずつに分割した要素用のスタイル */
 .pdf-char {
-  color: transparent !important;
+  color: black; /* テキストを表示 */
   position: absolute;
   white-space: pre;
   cursor: text;
@@ -293,28 +293,40 @@
   border: 1px solid transparent;
   box-sizing: border-box;
   z-index: 1; /* 基本z-index */
-  transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
-/* ホバー状態のz-indexを上げて最前面に表示する */
-.pdf-char:hover {
-  background-color: rgba(66, 153, 225, 0.2);
-  border: 1px solid rgba(66, 153, 225, 0.3);
-  z-index: 10; /* ホバー時は高いz-indexで前面に */
+/* 選択されたテキスト */
+.pdf-char::selection {
+  background-color: rgba(66, 153, 225, 0.4) !important;
+  color: black !important;
 }
 
-/* 選択された文字 */
-.pdf-char.selected {
-  background-color: rgba(66, 153, 225, 0.2);
-  opacity: 0.8 !important;
-  z-index: 5; /* 選択された要素は中間のz-index */
+/* コピーボタン */
+.copy-button {
+  position: absolute;
+  background-color: rgba(66, 153, 225, 0.9);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  z-index: 200;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  transition: all 0.2s ease;
 }
 
-/* アクティブな文字（現在対話中の文字） */
-.pdf-char.active {
-  z-index: 20; /* 最前面 */
-  background-color: rgba(66, 153, 225, 0.4);
-  opacity: 1 !important;
+.copy-button:hover {
+  background-color: rgba(59, 130, 246, 1);
+}
+
+/* テキストレイヤー全体 */
+.text-layer {
+  color: black;
+  user-select: text;
+  -webkit-user-select: text;
+  -ms-user-select: text;
+  cursor: text;
 }
 
 .textLayer .pdf-text {
