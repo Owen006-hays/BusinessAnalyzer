@@ -173,14 +173,25 @@ const BlobURLPDFViewer: React.FC = () => {
         </div>
       )}
       
-      {/* PDF viewer */}
+      {/* PDF viewer - iframeの代わりにオブジェクトタグを使用 */}
       {pdfURL && (
         <div className="flex-grow h-full w-full relative">
-          <iframe 
-            src={pdfURL} 
+          <object 
+            data={pdfURL} 
+            type="application/pdf"
             className="w-full h-full border-0"
-            title="PDFビューワー"
-          ></iframe>
+          >
+            <div className="w-full h-full flex items-center justify-center flex-col p-4 bg-gray-100">
+              <p className="mb-4 text-center">PDFを直接表示できませんでした。</p>
+              <Button
+                variant="default"
+                onClick={() => window.open(pdfURL, '_blank')}
+                className="bg-primary text-white"
+              >
+                PDFをダウンロード/別窓で開く
+              </Button>
+            </div>
+          </object>
           <Button
             variant="outline"
             size="sm"
