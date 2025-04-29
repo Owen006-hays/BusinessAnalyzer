@@ -475,25 +475,54 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
             const newWidth = startWidth + (touch.clientX - startX);
             const newHeight = startHeight + (touch.clientY - startY);
             
+            // Reactステートを更新
             setDimensions({
               width: newWidth,
               height: newHeight,
             });
+            
+            // DOM要素のスタイルも直接更新
+            if (element) {
+              element.style.width = `${newWidth}px`;
+              // 数値か文字列かをチェックして適切に扱う
+              if (typeof newHeight === 'number') {
+                element.style.height = `${newHeight}px`;
+              } else {
+                element.style.height = 'auto';
+              }
+            }
           };
           
           const handleTouchEnd = () => {
             document.removeEventListener('touchmove', handleTouchMove);
             document.removeEventListener('touchend', handleTouchEnd);
             
-            // 最新のサイズを取得
-            const currentWidth = dimensions.width;
-            const currentHeight = dimensions.height === 'auto' ? null : dimensions.height as number;
-            
-            // サイズを更新してサーバーに保存
-            updateTextBox(box.id, { 
-              width: currentWidth,
-              height: currentHeight,
-            });
+            if (element) {
+              // DOM要素から直接サイズを取得（より正確）
+              const currentWidth = parseInt(element.style.width) || dimensions.width;
+              // height値を適切に処理
+              let finalHeight: number | null = null;
+              
+              if (element.style.height !== 'auto') {
+                const parsedHeight = parseInt(element.style.height);
+                finalHeight = !isNaN(parsedHeight) ? parsedHeight : 
+                  (typeof dimensions.height === 'number' ? dimensions.height : null);
+              }
+              
+              console.log('タッチリサイズ後のサイズ:', { width: currentWidth, height: finalHeight });
+              
+              // 新しいサイズをステートに反映
+              setDimensions({
+                width: currentWidth,
+                height: finalHeight === null ? 'auto' : finalHeight,
+              });
+              
+              // サイズを更新してサーバーに保存
+              updateTextBox(box.id, { 
+                width: currentWidth,
+                height: finalHeight,
+              });
+            }
           };
           
           document.addEventListener('touchmove', handleTouchMove, { passive: false });
