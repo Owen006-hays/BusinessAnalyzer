@@ -5,6 +5,7 @@ import TextBox from "@/components/TextBox";
 import { Button } from "@/components/ui/button";
 import { FileUp, LayoutTemplate } from "lucide-react";
 import TemplateSelector from "@/components/TemplateSelector";
+import SheetTabs from "@/components/SheetTabs";
 import html2canvas from "html2canvas";
 
 const AnalysisCanvas: React.FC = () => {
@@ -128,12 +129,18 @@ const AnalysisCanvas: React.FC = () => {
 
         {/* Analysis content - shown when working on analysis */}
         {(pdfFile || currentTemplate) && (
-          <div className="relative h-full">
-            {/* テンプレートを表示 - TextBoxの下に配置するため先に描画 */}
-            {renderTemplate()}
+          <div className="flex flex-col h-full">
+            {/* シートタブを表示 */}
+            <SheetTabs />
             
-            {/* テキストボックスを表示 - 絶対配置で上に重ねる */}
-            {renderTextBoxes()}
+            {/* 分析コンテンツエリア */}
+            <div className="relative flex-1">
+              {/* テンプレートを表示 - TextBoxの下に配置するため先に描画 */}
+              {renderTemplate()}
+              
+              {/* テキストボックスを表示 - 絶対配置で上に重ねる */}
+              {renderTextBoxes()}
+            </div>
           </div>
         )}
       </div>

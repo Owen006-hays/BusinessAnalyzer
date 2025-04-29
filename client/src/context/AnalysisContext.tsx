@@ -339,8 +339,9 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       name,
       analysisId,
       template: null, // 新規シートはテンプレートなし
+      order: sheets.length, // 新しいシートは最後に追加
     });
-  }, [analysisId, createSheetMutation]);
+  }, [analysisId, createSheetMutation, sheets.length]);
   
   // Update an existing sheet
   const updateSheet = useCallback((id: number, data: Partial<Sheet>) => {
@@ -454,25 +455,42 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [analysisName]);
 
   const value = {
+    // ファイル関連
     pdfFile,
     setPdfFile,
     imageFile,
     setImageFile,
+    
+    // TextBox関連
     textBoxes,
     addTextBox,
-    addTextBoxToZone, // 新機能を追加
+    addTextBoxToZone,
     updateTextBox,
     deleteTextBox,
+    
+    // Sheet関連
+    sheets,
+    currentSheetId,
+    setCurrentSheetId,
+    addSheet,
+    updateSheet,
+    deleteSheet,
+    
+    // Template関連
     currentTemplate,
     setCurrentTemplate,
     setTextBoxesByZone,
-    getZonesForTemplate, // 新機能を追加
+    getZonesForTemplate,
+    
+    // Analysis関連
     analysisId,
     analysisName,
     setAnalysisName,
     saveAnalysis,
     loadAnalysis,
     exportAsImage,
+    
+    // Refs
     canvasRef,
   };
 
