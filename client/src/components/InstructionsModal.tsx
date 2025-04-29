@@ -18,6 +18,9 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ onClose }) => {
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-900">使い方ガイド</DialogTitle>
+          <DialogDescription className="sr-only">
+            ビジネス分析支援アプリの使い方説明
+          </DialogDescription>
         </DialogHeader>
         
         <div className="mb-6">

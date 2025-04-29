@@ -30,7 +30,7 @@ const Home: React.FC = () => {
       <div className="flex flex-col h-screen bg-gray-100">
         <Header onPdfUpload={handlePdfUpload} />
         
-        <main className="flex flex-1 overflow-hidden">
+        <main className="flex flex-1 overflow-hidden md:flex-row flex-col">
           <AnalysisCanvas />
           <PDFViewer />
         </main>

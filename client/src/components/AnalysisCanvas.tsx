@@ -66,7 +66,7 @@ const AnalysisCanvas: React.FC = () => {
 
   return (
     <section 
-      className={`w-1/2 h-full bg-white overflow-auto relative p-4 border-r border-secondary ${
+      className={`md:w-1/2 w-full h-full bg-white overflow-auto relative p-4 border-r border-secondary ${
         isOver ? "bg-blue-50" : ""
       }`}
       ref={drop}

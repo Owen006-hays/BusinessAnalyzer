@@ -8,8 +8,8 @@ import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 
-// Set the PDF.js worker path
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Set the PDF.js worker path - using a more reliable CDN
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 
 const PDFViewer: React.FC = () => {
   const { pdfFile, setPdfFile } = useAnalysisContext();
@@ -210,7 +210,7 @@ const PDFViewer: React.FC = () => {
   };
 
   return (
-    <section className="w-1/2 h-full bg-white overflow-hidden flex flex-col">
+    <section className="md:w-1/2 w-full md:h-full h-screen bg-white overflow-hidden flex flex-col">
       {/* PDF empty state - shown when no PDF is loaded */}
       {!pdfFile && (
         <div className="h-full flex flex-col items-center justify-center text-secondary-dark">

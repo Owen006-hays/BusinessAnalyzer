@@ -79,11 +79,11 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload }) => {
   };
 
   return (
-    <header className="bg-white border-b border-secondary px-4 py-2 flex items-center justify-between shadow-sm">
-      <div className="flex items-center">
-        <h1 className="text-xl font-semibold text-gray-900 mr-4">ビジネス分析支援アプリ</h1>
+    <header className="bg-white border-b border-secondary px-4 py-2 flex flex-col md:flex-row items-center justify-between shadow-sm">
+      <div className="flex flex-col md:flex-row items-center mb-2 md:mb-0 w-full md:w-auto">
+        <h1 className="text-xl font-semibold text-gray-900 mr-4 mb-2 md:mb-0">ビジネス分析支援アプリ</h1>
         
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 w-full md:w-auto justify-center">
           {/* File upload button */}
           <Button
             variant="default"
@@ -93,7 +93,8 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload }) => {
           >
             <label>
               <Upload className="h-4 w-4 mr-1" />
-              PDFをアップロード
+              <span className="hidden md:inline">PDFをアップロード</span>
+              <span className="inline md:hidden">PDF</span>
               <input
                 type="file"
                 accept="application/pdf"
@@ -111,18 +112,20 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload }) => {
             onClick={handleAddTextBox}
           >
             <Plus className="h-4 w-4 mr-1" />
-            テキストボックスを追加
+            <span className="hidden md:inline">テキストボックスを追加</span>
+            <span className="inline md:hidden">テキスト追加</span>
           </Button>
         </div>
       </div>
       
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-3 w-full md:w-auto justify-center">
         {/* Template dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="bg-secondary-light hover:bg-secondary text-secondary-dark">
               <LayoutTemplate className="h-4 w-4 mr-1" />
-              テンプレート
+              <span className="hidden md:inline">テンプレート</span>
+              <span className="inline md:hidden">テンプレ</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -149,7 +152,8 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload }) => {
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="bg-secondary-light hover:bg-secondary text-secondary-dark">
               <Save className="h-4 w-4 mr-1" />
-              保存/エクスポート
+              <span className="hidden md:inline">保存/エクスポート</span>
+              <span className="inline md:hidden">保存</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
