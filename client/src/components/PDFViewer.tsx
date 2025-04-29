@@ -341,28 +341,34 @@ const PDFViewer: React.FC = () => {
       return;
     }
     
-    // ファイルタイプのチェック
-    if (file.type !== "application/pdf") {
-      setLoadError("PDFファイルのみアップロードできます。選択したファイルは " + 
-        (file.type || "不明なタイプ") + " です。");
-      return;
-    }
-    
     // ファイルサイズのチェック（20MB以上は警告）
     if (file.size > 20 * 1024 * 1024) {
-      console.warn("大きなPDFファイル（" + Math.round(file.size / (1024 * 1024)) + 
+      console.warn("大きなファイル（" + Math.round(file.size / (1024 * 1024)) + 
         "MB）がアップロードされました。処理に時間がかかる場合があります。");
     }
     
-    // 有効なPDFファイルがアップロードされた場合
-    console.log("PDFファイルがアップロードされました:", file.name, file.size, "bytes");
-    setPdfFile(file);
+    // ファイルタイプのチェックと処理
+    if (file.type === "application/pdf") {
+      // PDFファイルの場合
+      console.log("PDFファイルがアップロードされました:", file.name, file.size, "bytes");
+      setPdfFile(file);
+      setImageFile(null); // 画像をクリア
+    } else if (file.type.startsWith("image/")) {
+      // 画像ファイルの場合
+      console.log("画像ファイルがアップロードされました:", file.name, file.size, "bytes");
+      setImageFile(file);
+      setPdfFile(null); // PDFをクリア
+    } else {
+      // サポートされていないファイルタイプ
+      setLoadError("サポートされていないファイル形式です。PDFまたは画像ファイル(JPEG, PNG, GIF)をアップロードしてください。選択したファイルは " + 
+        (file.type || "不明なタイプ") + " です。");
+    }
   };
 
   return (
     <section className="md:w-1/2 w-full md:h-full h-screen bg-white overflow-hidden flex flex-col">
-      {/* PDF empty state - shown when no PDF is loaded */}
-      {!pdfFile && (
+      {/* Empty state - shown when no file is loaded */}
+      {!pdfFile && !imageFile && (
         <div className="h-full flex flex-col items-center justify-center text-secondary-dark">
           <div className="flex items-center justify-center bg-secondary-light rounded-full w-24 h-24 mb-6">
             <svg 
@@ -382,14 +388,14 @@ const PDFViewer: React.FC = () => {
               <polyline points="10 9 9 9 8 9"></polyline>
             </svg>
           </div>
-          <h2 className="text-xl font-medium mb-2">PDFが読み込まれていません</h2>
-          <p className="text-center max-w-md mb-4">PDFをアップロードして、テキストを分析エリアに追加してください。</p>
+          <h2 className="text-xl font-medium mb-2">ファイルが読み込まれていません</h2>
+          <p className="text-center max-w-md mb-4">PDFまたは画像をアップロードして、情報を分析エリアに追加してください。</p>
           <Button
             className="bg-primary hover:bg-primary-light text-white"
             onClick={() => fileInputRef.current?.click()}
           >
             <FileUp className="mr-2 h-5 w-5" />
-            PDFをアップロード
+            ファイルをアップロード
           </Button>
           <input
             ref={fileInputRef}
@@ -439,6 +445,38 @@ const PDFViewer: React.FC = () => {
         </div>
       )}
 
+      {/* Image display - shown when image is loaded */}
+      {imageUrl && !pdfFile && !loadError && (
+        <div className="flex-grow flex flex-col">
+          <div className="flex items-center justify-between bg-secondary-light border-b border-secondary p-2">
+            <div className="flex items-center">
+              <span className="font-medium text-secondary-dark">{imageFile?.name}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button size="icon" variant="ghost" onClick={zoomOut}>
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <span>{Math.round(zoom * 100)}%</span>
+              <Button size="icon" variant="ghost" onClick={zoomIn}>
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
+          <div 
+            className="flex-grow overflow-auto bg-secondary-light p-4 flex justify-center"
+            ref={containerRef}
+          >
+            <img 
+              src={imageUrl} 
+              alt="Uploaded image"
+              style={{ transform: `scale(${zoom})`, transformOrigin: 'center top' }}
+              className="max-w-full shadow-md transition-transform duration-200"
+            />
+          </div>
+        </div>
+      )}
+      
       {/* PDF content - shown when PDF is loaded successfully */}
       {pdfFile && !loadError && (
         <div className="flex-grow flex flex-col">
