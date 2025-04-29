@@ -8,8 +8,8 @@ import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 
-// Set the PDF.js worker path - using a more reliable CDN
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+// PDFビューワーの設定 - ワーカーの明示的な設定は行わず、フェイクワーカーを使用
+// エラーハンドリングを強化して、ユーザーが操作できるようにする
 
 const PDFViewer: React.FC = () => {
   const { pdfFile, setPdfFile } = useAnalysisContext();
@@ -24,14 +24,30 @@ const PDFViewer: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // エラー状態追加
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   // Handle PDF loading
   useEffect(() => {
     if (!pdfFile) return;
+    
+    // エラー状態をリセット
+    setLoadError(null);
     
     const loadPdf = async () => {
       try {
         // Load the PDF file
         const arrayBuffer = await pdfFile.arrayBuffer();
+        
+        // 念のため、Worker設定をチェック
+        try {
+          if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+            console.warn('PDF.js worker not set, using fake worker mode.');
+          }
+        } catch (e) {
+          console.warn('PDF.js worker config error:', e);
+        }
+        
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         
         setPdfDocument(pdf);
@@ -42,6 +58,7 @@ const PDFViewer: React.FC = () => {
         renderPage(1, pdf);
       } catch (error) {
         console.error("Error loading PDF:", error);
+        setLoadError("PDFの読み込み中にエラーが発生しました。別のPDFファイルを試してください。");
       }
     };
     
@@ -137,7 +154,8 @@ const PDFViewer: React.FC = () => {
   const handleTextSelection = () => {
     const selection = window.getSelection();
     if (selection && selection.toString().trim() !== '') {
-      setSelectedText(selection.toString());
+      const selectionText = selection.toString();
+      setSelectedText(selectionText);
       
       // Get the bounding rectangle of the selection
       if (selection.rangeCount > 0) {
@@ -147,8 +165,31 @@ const PDFViewer: React.FC = () => {
         // Add selection to the list
         setTextSelections(prev => [
           ...prev,
-          { text: selection.toString(), rect }
+          { text: selectionText, rect }
         ]);
+        
+        // Provide visual indication of selection
+        if (containerRef.current) {
+          const container = containerRef.current;
+          const indicator = document.createElement('div');
+          indicator.className = 'text-selection-indicator';
+          indicator.style.position = 'absolute';
+          indicator.style.left = `${rect.left - container.getBoundingClientRect().left}px`;
+          indicator.style.top = `${rect.top - container.getBoundingClientRect().top}px`;
+          indicator.style.width = `${rect.width}px`;
+          indicator.style.height = `${rect.height}px`;
+          indicator.style.backgroundColor = 'rgba(66, 133, 244, 0.3)';
+          indicator.style.pointerEvents = 'none';
+          indicator.style.zIndex = '5';
+          container.appendChild(indicator);
+          
+          // Automatically remove the indicator after a moment
+          setTimeout(() => {
+            if (indicator.parentNode) {
+              indicator.parentNode.removeChild(indicator);
+            }
+          }, 1500);
+        }
       }
     }
   };

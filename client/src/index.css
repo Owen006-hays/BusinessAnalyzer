@@ -57,3 +57,50 @@
   }
 }
 
+/* PDF.js TextLayer styling */
+.textLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0.8;
+  overflow: hidden;
+}
+
+.textLayer span {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.textLayer .pdf-text {
+  position: absolute;
+  cursor: text;
+  opacity: 0.2;
+  user-select: text;
+  -webkit-user-select: text;
+  pointer-events: auto;
+}
+
+.textLayer .pdf-text::selection {
+  background: rgba(66, 133, 244, 0.4);
+  color: transparent;
+}
+
+.text-selection-indicator {
+  position: absolute;
+  background-color: rgba(66, 133, 244, 0.3);
+  border: 1px solid rgba(66, 133, 244, 0.6);
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Make sure textboxes are above PDF layer */
+.text-box {
+  z-index: 10;
+}
+
