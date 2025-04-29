@@ -15,6 +15,7 @@ interface AnalysisContextType {
   // TextBox related
   textBoxes: TextBox[];
   addTextBox: (content: string, x: number, y: number) => void;
+  addTextBoxToZone: (content: string, zone: string) => void; // 新機能: テンプレートゾーンに追加
   updateTextBox: (id: number, data: Partial<TextBox>) => void;
   deleteTextBox: (id: number) => void;
   
@@ -22,6 +23,7 @@ interface AnalysisContextType {
   currentTemplate: string | null;
   setCurrentTemplate: (template: string | null) => void;
   setTextBoxesByZone: (template: string) => void;
+  getZonesForTemplate: (template: string | null) => string[]; // テンプレートごとのゾーン名を取得
   
   // Analysis related
   analysisId: number;
@@ -140,6 +142,73 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   }, [analysisId, createTextBoxMutation]);
   
+  // 新機能: テンプレートの特定ゾーンにテキストボックスを追加
+  const addTextBoxToZone = useCallback((content: string, zone: string) => {
+    if (!canvasRef.current || !currentTemplate) return;
+    
+    // ゾーン要素を検索
+    const zoneElement = canvasRef.current.querySelector(`[data-zone="${zone}"]`) as HTMLElement;
+    if (!zoneElement) return;
+    
+    // ゾーンの位置を取得
+    const zoneRect = zoneElement.getBoundingClientRect();
+    const canvasRect = canvasRef.current.getBoundingClientRect();
+    
+    // ゾーン内の相対位置を計算 (中央に配置)
+    const x = (zoneRect.left - canvasRect.left) + 20; // 左端から少し余白を取る
+    const y = (zoneRect.top - canvasRect.top) + 20;  // 上端から少し余白を取る
+    
+    // テンプレートに応じた色を設定
+    let color = "white";
+    switch (zone) {
+      case "strengths": color = "blue"; break;
+      case "weaknesses": color = "red"; break;
+      case "opportunities": color = "green"; break;
+      case "threats": color = "yellow"; break;
+      case "company": color = "blue"; break;
+      case "customer": color = "green"; break;
+      case "competitor": color = "yellow"; break;
+      case "product": color = "purple"; break;
+      case "price": color = "purple"; break;
+      case "place": color = "blue"; break;
+      case "promotion": color = "green"; break;
+      case "political": color = "purple"; break;
+      case "economic": color = "blue"; break;
+      case "social": color = "green"; break;
+      case "technological": color = "blue"; break;
+    }
+    
+    // テキストボックスを追加
+    createTextBoxMutation.mutate({
+      content,
+      x,
+      y,
+      width: Math.min(zoneRect.width - 50, 200), // ゾーン幅に合わせる (余白を考慮)
+      height: null,
+      color,
+      analysisId,
+      zone, // ゾーン情報を保存
+    });
+  }, [analysisId, createTextBoxMutation, canvasRef, currentTemplate]);
+  
+  // テンプレートごとのゾーン名を取得
+  const getZonesForTemplate = useCallback((template: string | null): string[] => {
+    if (!template) return [];
+    
+    switch (template) {
+      case "swot":
+        return ["strengths", "weaknesses", "opportunities", "threats"];
+      case "4p":
+        return ["product", "price", "place", "promotion"];
+      case "3c":
+        return ["company", "customer", "competitor"];
+      case "pest":
+        return ["political", "economic", "social", "technological"];
+      default:
+        return [];
+    }
+  }, []);
+  
   // Update an existing text box
   const updateTextBox = useCallback((id: number, data: Partial<TextBox>) => {
     updateTextBoxMutation.mutate({ id, data });
@@ -218,11 +287,13 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
     setImageFile,
     textBoxes,
     addTextBox,
+    addTextBoxToZone, // 新機能を追加
     updateTextBox,
     deleteTextBox,
     currentTemplate,
     setCurrentTemplate,
     setTextBoxesByZone,
+    getZonesForTemplate, // 新機能を追加
     analysisId,
     analysisName,
     setAnalysisName,

@@ -13,6 +13,7 @@ export const textBoxes = pgTable("textboxes", {
   width: integer("width").notNull().default(200),
   height: integer("height"),
   color: text("color").default("white"),
+  zone: text("zone"), // テンプレートのゾーン（strengths, weaknesses など）
   analysisId: integer("analysis_id").notNull(),
 });
 
