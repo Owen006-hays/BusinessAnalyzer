@@ -491,6 +491,9 @@ const CanvasPDFViewer: React.FC = () => {
           // テキストアイテムを配置
           const fontScale = 1.0;
           
+          // テキスト要素の重複防止用マップ（位置をキーとして使用）
+          const charPositionMap = new Map();
+          
           // テキストコンテンツのアイテムを処理
           // 文字単位で細かく分割して処理する
           for (const item of textContent.items) {
@@ -498,8 +501,8 @@ const CanvasPDFViewer: React.FC = () => {
             
             // より精確な文字単位の処理のために文字を分割
             const [fontHeight, fontAscent] = item.transform.slice(3, 5);
-            const baseLeft = item.transform[4] * scale;
-            const baseTop = item.transform[5] * scale - fontAscent * scale;
+            const baseLeft = Math.round(item.transform[4] * scale * 10) / 10; // 小数点1桁で丸める
+            const baseTop = Math.round((item.transform[5] * scale - fontAscent * scale) * 10) / 10;
             const fontSize = fontHeight * scale;
             
             // このテキスト要素が持つすべての文字の幅情報（あれば）
@@ -508,6 +511,41 @@ const CanvasPDFViewer: React.FC = () => {
             // 1文字ずつ処理して正確な位置に配置
             for (let i = 0; i < item.str.length; i++) {
               const char = item.str[i];
+              
+              // 各文字の開始位置を計算（前の文字の累積幅に基づく）
+              let charLeft = baseLeft;
+              if (charWidths) {
+                for (let j = 0; j < i; j++) {
+                  charLeft += charWidths[j];
+                }
+              } else {
+                // 幅情報がない場合は推定
+                charLeft += i * (fontSize * 0.6); // 文字幅を推定
+              }
+              
+              // 位置をキーにして、既に同じ場所に文字があるかチェック
+              const posKey = `${Math.round(charLeft)}-${Math.round(baseTop)}`;
+              
+              // 既に同じ位置に文字がある場合はスキップ（重複防止）
+              if (charPositionMap.has(posKey)) {
+                const existingElement = charPositionMap.get(posKey);
+                const existingChar = existingElement.textContent || '';
+                
+                // 特殊文字と通常文字の判定
+                const isCurrentCharSpecial = char.trim() === '' || /[\s\x00-\x1F\x7F-\x9F]/.test(char);
+                const isExistingCharSpecial = existingChar.trim() === '' || /[\s\x00-\x1F\x7F-\x9F]/.test(existingChar);
+                
+                // 既存が特殊文字で新しい方が通常文字の場合のみ置き換え
+                if (isExistingCharSpecial && !isCurrentCharSpecial) {
+                  if (existingElement.parentNode) {
+                    existingElement.parentNode.removeChild(existingElement);
+                  }
+                  // 以下で新しい要素を作成して追加
+                } else {
+                  // それ以外の場合は既存を保持し、この文字をスキップ
+                  continue;
+                }
+              }
               
               // 1文字のテキスト要素を作成
               const charElement = document.createElement('span');
@@ -522,41 +560,86 @@ const CanvasPDFViewer: React.FC = () => {
               charElement.style.color = '#000';
               charElement.dataset.char = char;
               
-              // 要素をレイヤーに追加
-              textLayerDiv.appendChild(charElement);
-              
-              // 各文字の開始位置を計算（前の文字の累積幅に基づく）
-              let charLeft = baseLeft;
-              if (charWidths) {
-                for (let j = 0; j < i; j++) {
-                  charLeft += charWidths[j];
-                }
-              } else {
-                // 幅情報がない場合は推定
-                charLeft += i * (fontSize * 0.6); // 文字幅を推定
-              }
-              
-              // 文字の位置を設定
+              // 要素の位置とサイズを設定
               charElement.style.left = `${charLeft}px`;
               charElement.style.top = `${baseTop}px`;
               charElement.style.fontSize = `${fontSize}px`;
               charElement.style.fontFamily = 'sans-serif';
-              charElement.style.width = charWidths ? `${charWidths[i]}px` : 'auto';
+              charElement.style.width = charWidths ? `${charWidths[i]}px` : `${fontSize * 0.6}px`;
               charElement.style.height = `${fontSize * 1.2}px`;
               charElement.style.lineHeight = `${fontSize * 1.2}px`;
               
-              // ホバー効果
-              charElement.addEventListener('mouseenter', () => {
+              // マップに追加
+              charPositionMap.set(posKey, charElement);
+              // DOM に追加
+              textLayerDiv.appendChild(charElement);
+              
+              // 文字の正確な位置情報を保存（イベントハンドラで使用）
+              const charPosition = {
+                left: charLeft,
+                top: baseTop,
+                width: charWidths ? charWidths[i] : fontSize * 0.6,
+                height: fontSize * 1.2
+              };
+              
+              // ホバー効果（カーソル位置が実際に要素の上にある場合のみハイライト）
+              charElement.addEventListener('mouseenter', (e) => {
                 if (!isSelecting) {
-                  charElement.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
-                  charElement.style.opacity = '0.8';
+                  // 要素内のカーソル位置を正確に判定
+                  const rect = charElement.getBoundingClientRect();
+                  const mouseX = e.clientX;
+                  const mouseY = e.clientY;
+                  
+                  // カーソルが実際に文字の領域内にあるかチェック
+                  if (
+                    mouseX >= rect.left && 
+                    mouseX <= rect.right && 
+                    mouseY >= rect.top && 
+                    mouseY <= rect.bottom
+                  ) {
+                    // この要素を最前面に出す
+                    charElement.classList.add('active');
+                    charElement.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
+                    charElement.style.opacity = '0.8';
+                    
+                    // 他のハイライトを消す（重なりの問題解決）
+                    const otherElements = Array.from(textLayerDiv.children) as HTMLElement[];
+                    otherElements.forEach(el => {
+                      if (el !== charElement && !selectedElements.includes(el)) {
+                        // 選択されていない要素の場合だけ非表示に
+                        el.classList.remove('active');
+                        el.style.backgroundColor = 'transparent';
+                        el.style.opacity = '0';
+                      }
+                    });
+                  }
                 }
               });
               
-              charElement.addEventListener('mouseleave', () => {
+              charElement.addEventListener('mouseleave', (e) => {
                 if (!isSelecting && !selectedElements.includes(charElement)) {
-                  charElement.style.backgroundColor = 'transparent';
-                  charElement.style.opacity = '0';
+                  // ページ全体の要素の中で特定の座標のどれが最前面かを判断する
+                  const rect = charElement.getBoundingClientRect();
+                  const mouseX = e.clientX;
+                  const mouseY = e.clientY;
+                  
+                  // 本当に要素から離れたらアクティブを解除
+                  if (
+                    mouseX < rect.left || 
+                    mouseX > rect.right || 
+                    mouseY < rect.top || 
+                    mouseY > rect.bottom
+                  ) {
+                    charElement.classList.remove('active');
+                    charElement.style.backgroundColor = 'transparent';
+                    charElement.style.opacity = '0';
+                    
+                    // 既存の選択は維持
+                    if (selectedElements.includes(charElement)) {
+                      charElement.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
+                      charElement.style.opacity = '0.8';
+                    }
+                  }
                 }
               });
               

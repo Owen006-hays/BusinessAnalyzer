@@ -292,16 +292,29 @@
   pointer-events: auto;
   border: 1px solid transparent;
   box-sizing: border-box;
+  z-index: 1; /* 基本z-index */
+  transition: background-color 0.15s ease, opacity 0.15s ease;
 }
 
+/* ホバー状態のz-indexを上げて最前面に表示する */
 .pdf-char:hover {
   background-color: rgba(66, 153, 225, 0.2);
   border: 1px solid rgba(66, 153, 225, 0.3);
+  z-index: 10; /* ホバー時は高いz-indexで前面に */
 }
 
+/* 選択された文字 */
 .pdf-char.selected {
   background-color: rgba(66, 153, 225, 0.2);
   opacity: 0.8 !important;
+  z-index: 5; /* 選択された要素は中間のz-index */
+}
+
+/* アクティブな文字（現在対話中の文字） */
+.pdf-char.active {
+  z-index: 20; /* 最前面 */
+  background-color: rgba(66, 153, 225, 0.4);
+  opacity: 1 !important;
 }
 
 .textLayer .pdf-text {
