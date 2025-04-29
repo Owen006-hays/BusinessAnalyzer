@@ -83,7 +83,19 @@ export class MemStorage implements IStorage {
   
   async createTextBox(insertTextBox: InsertTextBox): Promise<TextBox> {
     const id = this.textBoxId++;
-    const textBox: TextBox = { ...insertTextBox, id };
+    
+    // 明示的に必要なプロパティを設定して、undefinedを避ける
+    const textBox: TextBox = {
+      id,
+      content: insertTextBox.content,
+      x: insertTextBox.x,
+      y: insertTextBox.y,
+      width: insertTextBox.width ?? 200, // デフォルト値を設定
+      height: insertTextBox.height ?? null,
+      color: insertTextBox.color ?? null,
+      analysisId: insertTextBox.analysisId
+    };
+    
     this.textBoxes.set(id, textBox);
     return textBox;
   }
@@ -112,7 +124,17 @@ export class MemStorage implements IStorage {
   
   async createAnalysis(insertAnalysis: InsertAnalysis): Promise<Analysis> {
     const id = this.analysisId++;
-    const analysis: Analysis = { ...insertAnalysis, id };
+    
+    // 明示的に必要なプロパティを設定して、undefinedを避ける
+    const analysis: Analysis = {
+      id,
+      name: insertAnalysis.name,
+      template: insertAnalysis.template ?? null,
+      pdfName: insertAnalysis.pdfName ?? null,
+      imageName: insertAnalysis.imageName ?? null,
+      createdAt: insertAnalysis.createdAt
+    };
+    
     this.analyses.set(id, analysis);
     return analysis;
   }
@@ -121,7 +143,16 @@ export class MemStorage implements IStorage {
     const existingAnalysis = this.analyses.get(id);
     if (!existingAnalysis) return undefined;
     
-    const updatedAnalysis: Analysis = { ...existingAnalysis, ...updateData };
+    // 更新データを適切に処理
+    const updatedAnalysis: Analysis = {
+      ...existingAnalysis,
+      name: updateData.name !== undefined ? updateData.name : existingAnalysis.name,
+      template: updateData.template !== undefined ? updateData.template : existingAnalysis.template,
+      pdfName: updateData.pdfName !== undefined ? updateData.pdfName : existingAnalysis.pdfName,
+      imageName: updateData.imageName !== undefined ? updateData.imageName : existingAnalysis.imageName,
+      createdAt: updateData.createdAt !== undefined ? updateData.createdAt : existingAnalysis.createdAt
+    };
+    
     this.analyses.set(id, updatedAnalysis);
     return updatedAnalysis;
   }
