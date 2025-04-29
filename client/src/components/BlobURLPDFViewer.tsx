@@ -113,10 +113,17 @@ const BlobURLPDFViewer: React.FC = () => {
   // テキスト選択の検出
   useEffect(() => {
     const checkSelection = () => {
+      // 既にゾーンセレクターが表示されている場合は処理をスキップ
+      if (showZoneSelector) return;
+      
       const selection = window.getSelection();
       if (!selection || selection.rangeCount === 0 || selection.toString().trim() === '') {
-        setSelectedText(null);
-        setShowCopyButton(false);
+        // ドロップダウンメニューがアクティブでない場合のみ選択状態をクリア
+        const isMenuActive = document.querySelector('.zone-selector-wrapper');
+        if (!isMenuActive) {
+          setSelectedText(null);
+          setShowCopyButton(false);
+        }
         return;
       }
       
@@ -125,19 +132,34 @@ const BlobURLPDFViewer: React.FC = () => {
       const text = selection.toString().trim();
       
       if (text) {
-        const rangeRect = range.getBoundingClientRect();
+        // PDFビューア内での選択かを確認
+        let isInsideViewer = false;
         if (viewerRef.current) {
           const viewerRect = viewerRef.current.getBoundingClientRect();
-          
-          // ボタン位置を計算（選択範囲の右上）
-          setCopyPosition({
-            x: rangeRect.right - viewerRect.left,
-            y: rangeRect.top - viewerRect.top
-          });
+          const rangeRect = range.getBoundingClientRect();
+          isInsideViewer = (
+            rangeRect.top >= viewerRect.top &&
+            rangeRect.bottom <= viewerRect.bottom &&
+            rangeRect.left >= viewerRect.left &&
+            rangeRect.right <= viewerRect.right
+          );
         }
         
-        setSelectedText(text);
-        setShowCopyButton(true);
+        if (isInsideViewer) {
+          const rangeRect = range.getBoundingClientRect();
+          if (viewerRef.current) {
+            const viewerRect = viewerRef.current.getBoundingClientRect();
+            
+            // ボタン位置を計算（選択範囲の右上）
+            setCopyPosition({
+              x: rangeRect.right - viewerRect.left,
+              y: rangeRect.top - viewerRect.top
+            });
+          }
+          
+          setSelectedText(text);
+          setShowCopyButton(true);
+        }
       } else {
         setSelectedText(null);
         setShowCopyButton(false);
