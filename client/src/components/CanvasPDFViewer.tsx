@@ -455,52 +455,80 @@ const CanvasPDFViewer: React.FC = () => {
           const fontScale = 1.0;
           
           // テキストコンテンツのアイテムを処理
+          // 文字単位で細かく分割して処理する
           for (const item of textContent.items) {
             if (!item.str) continue; // 空文字列はスキップ
             
-            // テキスト要素を作成
-            const textItem = document.createElement('span');
-            textItem.textContent = item.str;
-            textItem.style.position = 'absolute';
-            textItem.style.whiteSpace = 'pre';
-            textItem.style.cursor = 'text';
-            textItem.style.userSelect = 'text';
-            textItem.style.pointerEvents = 'auto';
-            textItem.style.opacity = '0';
-            textItem.style.color = '#000';
-            textItem.dataset.text = item.str; // データ属性にテキストを保存
-            
-            // 要素をレイヤーに追加
-            textLayerDiv.appendChild(textItem);
-            
-            // PDF座標からWebページ座標に変換して配置
-            // より正確な位置計算
+            // より精確な文字単位の処理のために文字を分割
             const [fontHeight, fontAscent] = item.transform.slice(3, 5);
-            const left = item.transform[4] * scale;
-            const top = item.transform[5] * scale - fontAscent * scale;
+            const baseLeft = item.transform[4] * scale;
+            const baseTop = item.transform[5] * scale - fontAscent * scale;
+            const fontSize = fontHeight * scale;
             
-            textItem.style.left = `${left}px`;
-            textItem.style.top = `${top}px`;
-            textItem.style.fontSize = `${fontHeight * scale}px`;
-            textItem.style.fontFamily = 'sans-serif';
-            textItem.style.transform = `scaleX(${1})`;
-            textItem.style.width = 'auto'; // 幅を自動調整
-            textItem.style.height = 'auto'; // 高さを自動調整
+            // このテキスト要素が持つすべての文字の幅情報（あれば）
+            const charWidths = item.width ? new Array(item.str.length).fill(item.width / item.str.length) : null;
             
-            // 単一テキスト要素のホバー効果
-            textItem.addEventListener('mouseenter', () => {
-              if (!isSelecting) {
-                textItem.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
-                textItem.style.opacity = '0.8';
+            // 1文字ずつ処理して正確な位置に配置
+            for (let i = 0; i < item.str.length; i++) {
+              const char = item.str[i];
+              
+              // 1文字のテキスト要素を作成
+              const charElement = document.createElement('span');
+              charElement.textContent = char;
+              charElement.className = 'pdf-char';
+              charElement.style.position = 'absolute';
+              charElement.style.whiteSpace = 'pre';
+              charElement.style.cursor = 'text';
+              charElement.style.userSelect = 'text';
+              charElement.style.pointerEvents = 'auto';
+              charElement.style.opacity = '0';
+              charElement.style.color = '#000';
+              charElement.dataset.char = char;
+              
+              // 要素をレイヤーに追加
+              textLayerDiv.appendChild(charElement);
+              
+              // 各文字の開始位置を計算（前の文字の累積幅に基づく）
+              let charLeft = baseLeft;
+              if (charWidths) {
+                for (let j = 0; j < i; j++) {
+                  charLeft += charWidths[j];
+                }
+              } else {
+                // 幅情報がない場合は推定
+                charLeft += i * (fontSize * 0.6); // 文字幅を推定
               }
-            });
-            
-            textItem.addEventListener('mouseleave', () => {
-              if (!isSelecting && !selectedElements.includes(textItem)) {
-                textItem.style.backgroundColor = 'transparent';
-                textItem.style.opacity = '0';
-              }
-            });
+              
+              // 文字の位置を設定
+              charElement.style.left = `${charLeft}px`;
+              charElement.style.top = `${baseTop}px`;
+              charElement.style.fontSize = `${fontSize}px`;
+              charElement.style.fontFamily = 'sans-serif';
+              charElement.style.width = charWidths ? `${charWidths[i]}px` : 'auto';
+              charElement.style.height = `${fontSize * 1.2}px`;
+              charElement.style.lineHeight = `${fontSize * 1.2}px`;
+              
+              // ホバー効果
+              charElement.addEventListener('mouseenter', () => {
+                if (!isSelecting) {
+                  charElement.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
+                  charElement.style.opacity = '0.8';
+                }
+              });
+              
+              charElement.addEventListener('mouseleave', () => {
+                if (!isSelecting && !selectedElements.includes(charElement)) {
+                  charElement.style.backgroundColor = 'transparent';
+                  charElement.style.opacity = '0';
+                }
+              });
+              
+              // クリック選択時の情報を保持
+              charElement.dataset.positionX = `${charLeft}`;
+              charElement.dataset.positionY = `${baseTop}`;
+              charElement.dataset.width = charWidths ? `${charWidths[i]}` : `${fontSize * 0.6}`;
+              charElement.dataset.height = `${fontSize * 1.2}`;
+            }
           }
         }
         
