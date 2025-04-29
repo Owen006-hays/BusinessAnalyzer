@@ -132,6 +132,36 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
   const handleDelete = () => {
     deleteTextBox(box.id);
   };
+  
+  // ゾーン名を日本語に変換
+  const getZoneLabel = (zone: string): string => {
+    switch (zone) {
+      // SWOT
+      case 'strengths': return 'S: 強み';
+      case 'weaknesses': return 'W: 弱み';
+      case 'opportunities': return 'O: 機会';
+      case 'threats': return 'T: 脅威';
+      
+      // 4P
+      case 'product': return '製品';
+      case 'price': return '価格';
+      case 'place': return '流通';
+      case 'promotion': return '販促';
+      
+      // 3C
+      case 'company': return '自社';
+      case 'customer': return '顧客';
+      case 'competitor': return '競合';
+      
+      // PEST
+      case 'political': return '政治';
+      case 'economic': return '経済';
+      case 'social': return '社会';
+      case 'technological': return '技術';
+      
+      default: return zone;
+    }
+  };
 
   // Update local content when box.content changes
   useEffect(() => {
