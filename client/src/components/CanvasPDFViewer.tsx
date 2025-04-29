@@ -291,14 +291,25 @@ const CanvasPDFViewer: React.FC = () => {
               bottom: top + height
             };
             
+            // すべての選択をリセット
+            selectedElements.forEach(el => {
+              el.style.backgroundColor = '';
+              el.style.opacity = '0';
+            });
+            selectedElements = [];
+            
+            // 選択範囲内のテキスト要素を検出して選択する
             Array.from(textLayerDiv.children).forEach((child) => {
               const el = child as HTMLElement;
               const elLeft = parseFloat(el.style.left);
               const elTop = parseFloat(el.style.top);
-              const elRight = elLeft + el.offsetWidth;
-              const elBottom = elTop + el.offsetHeight;
+              const elWidth = el.getBoundingClientRect().width;
+              const elHeight = el.getBoundingClientRect().height;
+              const elRight = elLeft + elWidth;
+              const elBottom = elTop + elHeight;
               
-              // 範囲内かチェック
+              // テキスト要素が選択範囲と十分に重なるかチェック
+              // より正確なオーバーラップロジック
               const overlaps = !(
                 elRight < selectionBounds.left ||
                 elLeft > selectionBounds.right ||
@@ -306,17 +317,28 @@ const CanvasPDFViewer: React.FC = () => {
                 elTop > selectionBounds.bottom
               );
               
+              const minIntersectionRatio = 0.2; // 20%以上の重なりを要求
+              
+              // 重なっている面積の比率を計算
               if (overlaps) {
-                el.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
-                el.style.opacity = '0.8';
-                if (!selectedElements.includes(el)) {
-                  selectedElements.push(el);
-                }
-              } else {
-                if (selectedElements.includes(el)) {
-                  el.style.backgroundColor = '';
-                  el.style.opacity = '0';
-                  selectedElements = selectedElements.filter(item => item !== el);
+                const intersectionLeft = Math.max(elLeft, selectionBounds.left);
+                const intersectionTop = Math.max(elTop, selectionBounds.top);
+                const intersectionRight = Math.min(elRight, selectionBounds.right);
+                const intersectionBottom = Math.min(elBottom, selectionBounds.bottom);
+                
+                const intersectionWidth = Math.max(0, intersectionRight - intersectionLeft);
+                const intersectionHeight = Math.max(0, intersectionBottom - intersectionTop);
+                const intersectionArea = intersectionWidth * intersectionHeight;
+                
+                const elementArea = elWidth * elHeight;
+                const intersectionRatio = elementArea > 0 ? intersectionArea / elementArea : 0;
+                
+                if (intersectionRatio >= minIntersectionRatio) {
+                  el.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
+                  el.style.opacity = '0.8';
+                  if (!selectedElements.includes(el)) {
+                    selectedElements.push(el);
+                  }
                 }
               }
             });
@@ -332,13 +354,56 @@ const CanvasPDFViewer: React.FC = () => {
               // 選択テキストをコピー可能にする
               const selectedTexts = selectedElements.map(el => el.textContent).join(' ');
               
+              // 選択されたテキストをクリップボードにコピーするための非表示の要素を作成
+              const tempTextarea = document.createElement('textarea');
+              tempTextarea.value = selectedTexts;
+              tempTextarea.style.position = 'absolute';
+              tempTextarea.style.left = '-9999px';
+              document.body.appendChild(tempTextarea);
+              
+              // コピーボタンを作成
+              const copyButton = document.createElement('button');
+              copyButton.innerHTML = 'コピー';
+              copyButton.className = 'copy-button';
+              copyButton.style.position = 'absolute';
+              copyButton.style.left = `${e.clientX - textLayerContainer.getBoundingClientRect().left + 10}px`;
+              copyButton.style.top = `${e.clientY - textLayerContainer.getBoundingClientRect().top - 40}px`;
+              copyButton.style.backgroundColor = 'rgba(66, 153, 225, 0.9)';
+              copyButton.style.color = 'white';
+              copyButton.style.border = 'none';
+              copyButton.style.borderRadius = '4px';
+              copyButton.style.padding = '4px 12px';
+              copyButton.style.fontSize = '12px';
+              copyButton.style.cursor = 'pointer';
+              copyButton.style.zIndex = '200';
+              copyButton.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+              textLayerContainer.appendChild(copyButton);
+              
+              // コピーボタンのクリックイベント
+              copyButton.addEventListener('click', () => {
+                tempTextarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempTextarea);
+                
+                // コピー成功のフィードバック
+                copyButton.innerHTML = 'コピー完了!';
+                copyButton.style.backgroundColor = '#16a34a'; // green
+                
+                // 少し待ってから消す
+                setTimeout(() => {
+                  if (copyButton.parentNode) {
+                    copyButton.parentNode.removeChild(copyButton);
+                  }
+                }, 1500);
+              });
+              
               // 選択されたテキストを通知
               const tooltip = document.createElement('div');
               tooltip.className = 'selection-tooltip';
-              tooltip.textContent = '選択完了！ Ctrl+Cでコピーできます';
+              tooltip.textContent = `${selectedElements.length}文字を選択しました`;
               tooltip.style.position = 'absolute';
               tooltip.style.left = `${e.clientX - textLayerContainer.getBoundingClientRect().left}px`;
-              tooltip.style.top = `${e.clientY - textLayerContainer.getBoundingClientRect().top - 30}px`;
+              tooltip.style.top = `${e.clientY - textLayerContainer.getBoundingClientRect().top - 70}px`;
               tooltip.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
               tooltip.style.color = 'white';
               tooltip.style.padding = '5px 10px';
@@ -355,13 +420,24 @@ const CanvasPDFViewer: React.FC = () => {
               selectedElements.forEach(el => {
                 el.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
                 el.style.opacity = '0.8';
+                // コピーをサポートするために操作可能にする
+                el.style.pointerEvents = 'auto';
+                el.style.userSelect = 'text';
               });
               
-              // 2秒後にツールチップを削除
+              // タイマーを設定して、ツールチップと選択状態を管理
               setTimeout(() => {
                 if (tooltip.parentNode) {
                   tooltip.parentNode.removeChild(tooltip);
                 }
+                
+                // 5秒後にコピーボタンが残っていたら消す
+                setTimeout(() => {
+                  if (copyButton.parentNode) {
+                    copyButton.parentNode.removeChild(copyButton);
+                  }
+                  document.body.removeChild(tempTextarea);
+                }, 3000);
               }, 2000);
             }
             
