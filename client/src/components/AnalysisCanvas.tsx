@@ -27,8 +27,14 @@ const AnalysisCanvas: React.FC = () => {
       const canvasRect = canvas?.getBoundingClientRect();
       
       if (canvas && canvasRect) {
-        const x = item.clientOffset.x - canvasRect.left;
-        const y = item.clientOffset.y - canvasRect.top;
+        // Calculate position and ensure it's within canvas bounds
+        let x = item.clientOffset.x - canvasRect.left;
+        let y = item.clientOffset.y - canvasRect.top;
+        
+        // Keep box within the canvas bounds with 10px margin
+        x = Math.max(10, Math.min(x, canvasRect.width - 210));
+        y = Math.max(10, Math.min(y, canvasRect.height - 110));
+        
         addTextBox(item.text, x, y);
       }
       

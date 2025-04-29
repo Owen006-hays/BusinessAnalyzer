@@ -105,26 +105,26 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
 
     case "pest":
       return (
-        <div className="template-grid h-full grid grid-cols-2 grid-rows-2 gap-4">
-          <div className="bg-purple-50 border border-purple-200 rounded p-3 flex flex-col">
+        <div className="template-grid h-full grid grid-cols-1 md:grid-cols-2 grid-rows-auto md:grid-rows-2 gap-4">
+          <div className="bg-purple-50 border border-purple-200 rounded p-3 flex flex-col min-h-[100px]">
             <h3 className="text-purple-700 font-medium text-center border-b border-purple-200 pb-1 mb-2">
               政治的要因 (Political)
             </h3>
             <div className="flex-grow template-dropzone" data-zone="political"></div>
           </div>
-          <div className="bg-blue-50 border border-blue-200 rounded p-3 flex flex-col">
+          <div className="bg-blue-50 border border-blue-200 rounded p-3 flex flex-col min-h-[100px]">
             <h3 className="text-blue-700 font-medium text-center border-b border-blue-200 pb-1 mb-2">
               経済的要因 (Economic)
             </h3>
             <div className="flex-grow template-dropzone" data-zone="economic"></div>
           </div>
-          <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col">
+          <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col min-h-[100px]">
             <h3 className="text-green-700 font-medium text-center border-b border-green-200 pb-1 mb-2">
               社会的要因 (Social)
             </h3>
             <div className="flex-grow template-dropzone" data-zone="social"></div>
           </div>
-          <div className="bg-teal-50 border border-teal-200 rounded p-3 flex flex-col">
+          <div className="bg-teal-50 border border-teal-200 rounded p-3 flex flex-col min-h-[100px]">
             <h3 className="text-teal-700 font-medium text-center border-b border-teal-200 pb-1 mb-2">
               技術的要因 (Technological)
             </h3>

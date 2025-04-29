@@ -176,7 +176,7 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
     <div
       ref={dragRef}
       data-id={box.id}
-      className={`absolute text-box ${getBgColorClass()} border rounded-md p-3 shadow-sm cursor-move transition-shadow duration-200 hover:shadow-md ${
+      className={`absolute text-box group ${getBgColorClass()} border rounded-md p-3 shadow-sm cursor-move transition-shadow duration-200 hover:shadow-md ${
         isDragging ? 'opacity-50' : ''
       } ${resizing ? 'select-none' : ''}`}
       style={{
@@ -203,8 +203,43 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
 
       {/* Resize handle */}
       <div
-        className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover:opacity-100 hover:opacity-100"
+        className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize opacity-50 md:opacity-0 group-hover:opacity-100 hover:opacity-100 touch-manipulation"
         onMouseDown={handleResizeMouseDown}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          const touch = e.touches[0];
+          const startX = touch.clientX;
+          const startY = touch.clientY;
+          const startWidth = dimensions.width;
+          const element = e.currentTarget.parentElement;
+          const startHeight = dimensions.height === 'auto' ? 
+            element?.offsetHeight || 0 : 
+            dimensions.height as number;
+          
+          const handleTouchMove = (moveEvent: TouchEvent) => {
+            const touch = moveEvent.touches[0];
+            const newWidth = Math.max(100, startWidth + (touch.clientX - startX));
+            const newHeight = Math.max(50, startHeight + (touch.clientY - startY));
+            
+            setDimensions({
+              width: newWidth,
+              height: newHeight,
+            });
+          };
+          
+          const handleTouchEnd = () => {
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('touchend', handleTouchEnd);
+            
+            updateTextBox(box.id, { 
+              width: dimensions.width,
+              height: dimensions.height === 'auto' ? null : dimensions.height as number,
+            });
+          };
+          
+          document.addEventListener('touchmove', handleTouchMove, { passive: false });
+          document.addEventListener('touchend', handleTouchEnd);
+        }}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -228,19 +263,19 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
       </div>
 
       {/* Menu trigger */}
-      <div className="absolute top-1 right-1 opacity-0 hover:opacity-100 group-hover:opacity-100">
+      <div className="absolute top-1 right-1 opacity-50 md:opacity-0 hover:opacity-100 group-hover:opacity-100">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="h-6 w-6 rounded-full bg-white bg-opacity-70 flex items-center justify-center hover:bg-opacity-100">
-              <MoreHorizontal className="h-4 w-4 text-gray-500" />
+            <button className="h-8 w-8 rounded-full bg-white bg-opacity-70 flex items-center justify-center hover:bg-opacity-100">
+              <MoreHorizontal className="h-5 w-5 text-gray-500" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
             <DropdownMenuItem onClick={() => setShowColorPicker(true)}>
-              Change Color
+              色を変更
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleDelete}>
-              Delete
+              削除
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
