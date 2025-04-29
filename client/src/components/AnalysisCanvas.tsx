@@ -128,12 +128,13 @@ const AnalysisCanvas: React.FC = () => {
 
         {/* Analysis content - shown when working on analysis */}
         {(pdfFile || currentTemplate) && (
-          <>
+          <div className="relative h-full">
+            {/* テンプレートを表示 - TextBoxの下に配置するため先に描画 */}
             {renderTemplate()}
-            <div className="relative h-full" id="free-canvas">
-              {renderTextBoxes()}
-            </div>
-          </>
+            
+            {/* テキストボックスを表示 - 絶対配置で上に重ねる */}
+            {renderTextBoxes()}
+          </div>
         )}
       </div>
     </section>
