@@ -8,7 +8,9 @@ import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 
-// 型定義がない場合の代替策として、pdfjsLibからのGlobalWorkerOptionsを使用
+// PDF.jsのグローバルオプションへのアクセス方法
+// TypeScriptインポートでGlobalWorkerOptionsにアクセスできない場合は
+// pdfjsLib経由でアクセス
 const GlobalWorkerOptions = (pdfjsLib as any).GlobalWorkerOptions;
 
 // PDF.js関連のグローバル設定
@@ -16,19 +18,31 @@ const GlobalWorkerOptions = (pdfjsLib as any).GlobalWorkerOptions;
   try {
     console.log('Configuring PDF.js...');
     
-    // PDF.jsワーカーを設定
-    // ワーカーなしで実行するために空文字列を明示的に設定
-    GlobalWorkerOptions.workerSrc = '';
-    
-    // 設定を確認
-    console.log('PDF.js worker configured successfully:', GlobalWorkerOptions.workerSrc);
+    // PDF.jsワーカーを設定（ワーカーなしモード）
+    try {
+      // 通常の方法でワーカーの設定を試みる
+      GlobalWorkerOptions.workerSrc = '';
+      
+      // バックアップ方法としてdisableWorkerも設定
+      if (typeof GlobalWorkerOptions.disableWorker !== 'undefined') {
+        GlobalWorkerOptions.disableWorker = true;
+      }
+      
+      console.log('PDF.js worker配置モード設定完了:', GlobalWorkerOptions.workerSrc || 'ワーカーレスモード');
+    } catch (workerErr) {
+      console.error('PDF.js workerの設定に失敗:', workerErr);
+    }
     
     // PDF.jsライブラリのバージョン情報をログに出力（診断用）
-    if ((pdfjsLib as any).version) {
-      console.log('Using PDF.js version:', (pdfjsLib as any).version);
+    try {
+      if ((pdfjsLib as any).version) {
+        console.log('PDF.jsバージョン:', (pdfjsLib as any).version);
+      }
+    } catch (verErr) {
+      console.warn('PDF.jsバージョン取得失敗');
     }
   } catch (error) {
-    console.error('Error configuring PDF.js:', error);
+    console.error('PDF.js設定エラー:', error);
   }
 })();
 
@@ -88,20 +102,35 @@ const PDFViewer: React.FC = () => {
         
         // 画像URLを作成
         const url = URL.createObjectURL(imageFile);
+        console.log("画像URLを作成しました:", url);
         
         // 画像の読み込みをテスト
         const img = new Image();
         
         // 画像の読み込みを確認するPromise
-        const loadPromise = new Promise((resolve, reject) => {
-          img.onload = () => resolve(true);
-          img.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
+        const loadPromise = new Promise<boolean>((resolve, reject) => {
+          img.onload = () => {
+            console.log("画像の読み込みに成功しました", img.width, "x", img.height);
+            resolve(true);
+          };
+          
+          img.onerror = (err) => {
+            console.error("画像の読み込みに失敗:", err);
+            reject(new Error(`画像の読み込みに失敗しました: ${imageFile.name}`));
+          };
+          
+          // タイムアウト処理を追加（5秒後）
+          setTimeout(() => {
+            reject(new Error("画像の読み込みがタイムアウトしました"));
+          }, 5000);
+          
+          // 画像のソースを設定
           img.src = url;
         });
         
         // 画像のロードを待つ
         await loadPromise;
-        console.log("画像の読み込みに成功:", imageFile.name);
+        console.log("画像の処理に成功:", imageFile.name);
         
         // URLをステートに設定
         setImageUrl(url);
@@ -160,13 +189,31 @@ const PDFViewer: React.FC = () => {
         try {
           console.log("PDF読み込みタスク開始");
           
-          // フォールバックオプションとしてシンプルな実装を試す
-          // より安全で単純な設定（エラーリスクを最小化）
-          // TypeScriptエラーを回避するために単純化
-          const loadingTask = pdfjsLib.getDocument(arrayBuffer);
+          // PDF.jsの設定をオブジェクト形式で統一して明示的に設定
+          const loadingTask = pdfjsLib.getDocument({
+            data: arrayBuffer,
+            // 明示的にworkerが不要であることを指定
+            useWorkerFetch: false,
+            isEvalSupported: false,
+            disableAutoFetch: true,
+            disableStream: true,
+            disableRange: true,
+            cMapUrl: '',
+            cMapPacked: true
+          });
           
           console.log("PDFドキュメント読み込み中...");
-          const pdf = await loadingTask.promise;
+          
+          // タイムアウト処理を追加
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error("PDF読み込みタイムアウト")), 10000);
+          });
+          
+          // 読み込みタスクとタイムアウトを競合させる
+          const pdf = await Promise.race([
+            loadingTask.promise,
+            timeoutPromise
+          ]) as PDFDocumentProxy;
           
           console.log("PDFの解析に成功:", pdf.numPages, "ページ");
           
