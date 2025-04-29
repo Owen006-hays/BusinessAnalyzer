@@ -187,11 +187,11 @@ const CanvasPDFViewer: React.FC = () => {
         textLayerDiv.style.right = '0';
         textLayerDiv.style.bottom = '0';
         textLayerDiv.style.overflow = 'hidden';
-        textLayerDiv.style.opacity = '0.2';
+        textLayerDiv.style.opacity = '1'; // 完全な不透明度に変更
         textLayerDiv.style.lineHeight = '1.0';
         textLayerDiv.style.width = `${viewport.width}px`;
         textLayerDiv.style.height = `${viewport.height}px`;
-        textLayerDiv.style.pointerEvents = 'none';
+        textLayerDiv.style.pointerEvents = 'auto'; // ポインターイベントを許可
         
         // キャンバスの親要素に追加（同じ位置に配置）
         const canvasWrapper = canvas.parentNode as HTMLElement;
@@ -227,7 +227,7 @@ const CanvasPDFViewer: React.FC = () => {
             textItem.style.cursor = 'text';
             textItem.style.userSelect = 'text';
             textItem.style.pointerEvents = 'auto';
-            textItem.style.opacity = '0.01';
+            textItem.style.opacity = '0';
             textItem.style.color = '#000';
             
             // 要素をレイヤーに追加
@@ -250,10 +250,33 @@ const CanvasPDFViewer: React.FC = () => {
             // ハイライト効果を追加
             textItem.addEventListener('mouseenter', () => {
               textItem.style.backgroundColor = 'rgba(66, 153, 225, 0.2)';
+              textItem.style.opacity = '0.8'; // ホバー時に見えるように
+              textItem.style.color = 'black';
             });
             
             textItem.addEventListener('mouseleave', () => {
               textItem.style.backgroundColor = 'transparent';
+              textItem.style.opacity = '0'; // 元に戻す
+            });
+            
+            // 選択イベントをリッスン
+            textItem.addEventListener('mousedown', () => {
+              // 選択開始時にツールチップを表示
+              const tooltip = document.createElement('div');
+              tooltip.className = 'absolute px-2 py-1 bg-black text-white text-xs rounded z-50';
+              tooltip.style.left = `${parseFloat(textItem.style.left) + 20}px`;
+              tooltip.style.top = `${parseFloat(textItem.style.top) - 25}px`;
+              tooltip.textContent = '選択中...Ctrl+Cでコピー';
+              tooltip.style.opacity = '0.8';
+              tooltip.style.pointerEvents = 'none';
+              textLayerDiv.appendChild(tooltip);
+              
+              // 5秒後に消す
+              setTimeout(() => {
+                if (tooltip.parentNode) {
+                  tooltip.parentNode.removeChild(tooltip);
+                }
+              }, 3000);
             });
           }
         }

@@ -55,8 +55,15 @@
 }
 
 .text-layer span::selection {
-  background: rgba(66, 153, 225, 0.4);
+  background: rgba(66, 153, 225, 0.6) !important;
   color: black !important;
+}
+
+/* テキスト選択時の特別なスタイル */
+::selection {
+  background: rgba(66, 153, 225, 0.6) !important;
+  color: black !important;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.2);
 }
 
 .text-selection-indicator {
