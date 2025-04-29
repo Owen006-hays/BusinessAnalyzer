@@ -372,6 +372,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
   
   // Save the current analysis
   const saveAnalysis = useCallback(async () => {
+    // 分析自体の情報を保存
     await updateAnalysisMutation.mutateAsync({
       id: analysisId,
       data: {
