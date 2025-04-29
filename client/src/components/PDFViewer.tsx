@@ -8,18 +8,26 @@ import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 
-// PDFJSの初期化設定
+// PDFJSの初期化設定 - バージョン3.xに対応した設定
 try {
-  // パス設定がすでに行われていない場合のみ設定
-  if (!(pdfjsLib as any).GlobalWorkerOptions.workerSrc) {
-    console.log('Setting up PDF.js worker');
-    
-    // ワーカーファイルのパスを指定
-    // フェイクワーカーモードを使用（ワーカーなし）
+  // PDF.jsワーカー設定
+  console.log('Setting up PDF.js worker');
+  
+  // PDF.jsのGlobalWorkerOptionsが利用可能か確認
+  if ((pdfjsLib as any).GlobalWorkerOptions) {
+    // フェイクワーカーモードを設定（ワーカーファイルを使わない）
     (pdfjsLib as any).GlobalWorkerOptions.disableWorker = true;
     
-    // 代替アプローチとして、グローバルワーカーソースを空にしてフェイクワーカーを強制
-    (pdfjsLib as any).GlobalWorkerOptions.workerSrc = '';
+    // ダミーワーカーパスを設定（必須）
+    // 実際のパスではなく、フェイクワーカーモードのトリガーとして機能
+    (pdfjsLib as any).GlobalWorkerOptions.workerSrc = '/pdf.worker.js';
+  } else {
+    console.warn('PDF.js GlobalWorkerOptions not available');
+  }
+  
+  // PDF.jsのバージョン情報を記録
+  if ((pdfjsLib as any).version) {
+    console.log('PDF.js version:', (pdfjsLib as any).version);
   }
 } catch (err) {
   console.warn('PDF.js worker setup error:', err);
@@ -106,8 +114,36 @@ const PDFViewer: React.FC = () => {
         try {
           console.log("PDF読み込みタスク開始");
           
-          // シンプルな設定でPDFを読み込む
-          const loadingTask = pdfjsLib.getDocument(arrayBuffer);
+          // PDFJSのエラーを詳細に把握するためのハンドラー
+          const onProgress = (progressData: any) => {
+            if (progressData.loaded && progressData.total) {
+              console.log(`PDF読み込み進捗: ${Math.round((progressData.loaded / progressData.total) * 100)}%`);
+            }
+          };
+          
+          // より堅牢な設定でPDFを読み込む
+          const loadingTask = pdfjsLib.getDocument({
+            data: arrayBuffer,
+            // 進捗状況を監視
+            onProgress,
+            // すべてのCMapを有効に
+            cMapUrl: null,
+            cMapPacked: true,
+            // プログレッシブレンダリングを有効に
+            enableXfa: false,
+            // その他のオプション
+            useSystemFonts: true,
+            useWorkerFetch: false,
+            isEvalSupported: true
+          } as any);
+          
+          // TypeScriptの型の問題を回避するために型アサーションを使用
+          // エラーハンドリングを追加（PDF.jsの型定義が不完全なため）
+          (loadingTask as any).onUnsupportedFeature = (featureId: string) => {
+            console.warn('サポートされていないPDF機能:', featureId);
+          };
+          
+          console.log("PDFドキュメント読み込み中...");
           const pdf = await loadingTask.promise;
           
           console.log("PDFの解析に成功:", pdf.numPages, "ページ");
@@ -122,14 +158,34 @@ const PDFViewer: React.FC = () => {
           // エラーの詳細なログ
           console.error("PDFの解析エラー:", err);
           
+          // エラーの詳細な診断
+          let errorType = "不明なエラー";
           let errorMsg = '無効なPDFファイルです';
+          
           if (err instanceof Error) {
             errorMsg = err.message || errorMsg;
+            
+            // エラーの種類を判定して適切なメッセージを表示
+            if (errorMsg.includes("password")) {
+              errorType = "パスワード保護されたPDF";
+              errorMsg = "このPDFはパスワードで保護されています。パスワードなしのPDFをアップロードしてください。";
+            } else if (errorMsg.includes("corrupt") || errorMsg.includes("invalid") || errorMsg.includes("unexpected")) {
+              errorType = "破損したPDF";
+              errorMsg = "PDFファイルが破損しているか、サポートされていない形式です。別のPDFをお試しください。";
+            } else if (errorMsg.includes("not well-formed")) {
+              errorType = "無効なフォーマット";
+              errorMsg = "PDFの形式が正しくありません。標準的なPDFファイルをお試しください。";
+            }
           } else if (typeof err === 'object' && err !== null) {
-            errorMsg = err.toString ? err.toString() : JSON.stringify(err);
+            try {
+              errorMsg = err.toString ? err.toString() : JSON.stringify(err);
+            } catch (jsonErr) {
+              errorMsg = "エラー情報を取得できませんでした";
+            }
           }
           
-          setLoadError(`PDFとして解析できませんでした: ${errorMsg}`);
+          console.warn(`PDF解析エラー(${errorType}): ${errorMsg}`);
+          setLoadError(`PDFを読み込めませんでした: ${errorMsg}`);
           return;
         }
       } catch (err) {
