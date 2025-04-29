@@ -2,22 +2,30 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAnalysisContext } from "@/context/AnalysisContext";
 import { Button } from "@/components/ui/button";
 import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
+import * as pdfjs from 'pdfjs-dist';
+
+// PDFJSのワーカーを設定
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
 /**
  * キャンバスベースのPDFビューワー
  * ネイティブなテキスト選択を実装
  */
-const CanvasPDFViewer: React.FC = () => {
-  const { pdfFile, setPdfFile, imageFile, setImageFile } = useAnalysisContext();
+const NewCanvasPDFViewer: React.FC = () => {
+  const { pdfFile, setPdfFile, imageFile, setImageFile, addTextBox } = useAnalysisContext();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [zoom, setZoom] = useState(1.0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [selectedRangeText, setSelectedRangeText] = useState('');
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 選択イベントを管理するための変数
+  const selectionChangeListenerRef = useRef<() => void>(() => {});
   
   // PDFのレンダリング
   useEffect(() => {
@@ -29,18 +37,11 @@ const CanvasPDFViewer: React.FC = () => {
     
     const loadPdf = async () => {
       try {
-        // グローバルのPDF.jsを使用
-        const pdfjsLib = (window as any).pdfjsLib;
-        if (!pdfjsLib) {
-          setErrorMessage("PDF.jsライブラリが見つかりませんでした。");
-          return;
-        }
-        
         // ArrayBufferに変換
         const arrayBuffer = await pdfFile.arrayBuffer();
         
         // PDFドキュメントを読み込み（日本語フォントサポート付き）
-        const loadingTask = pdfjsLib.getDocument({
+        const loadingTask = pdfjs.getDocument({
           data: arrayBuffer,
           cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
           cMapPacked: true,
@@ -48,7 +49,7 @@ const CanvasPDFViewer: React.FC = () => {
         });
         
         // タイムアウト処理
-        const timeoutPromise = new Promise((_, reject) => {
+        const timeoutPromise = new Promise<any>((_, reject) => {
           setTimeout(() => reject(new Error("PDF読み込みがタイムアウトしました")), 10000);
         });
         
@@ -61,6 +62,9 @@ const CanvasPDFViewer: React.FC = () => {
         setTotalPages(pdf.numPages);
         setCurrentPage(1);
         
+        // 参照に保存
+        pdfDocumentRef.current = pdf;
+        
         // 最初のページを描画
         renderPage(pdf, 1, zoom);
       } catch (error) {
@@ -70,40 +74,19 @@ const CanvasPDFViewer: React.FC = () => {
     };
     
     loadPdf();
-  }, [pdfFile]);
+  }, [pdfFile, zoom]);
   
   // 現在のPDFドキュメントを保持する参照
   const pdfDocumentRef = useRef<any>(null);
   
   // ページ番号やズーム変更時の再レンダリング
   useEffect(() => {
-    if (!pdfFile) return;
+    if (!pdfFile || !pdfDocumentRef.current) return;
     
     const renderCurrentPage = async () => {
       try {
-        // PDFドキュメントがすでに読み込まれている場合は再利用
-        if (pdfDocumentRef.current) {
-          console.log(`ページ ${currentPage} をズーム ${zoom} でレンダリング`);
-          renderPage(pdfDocumentRef.current, currentPage, zoom);
-          return;
-        }
-        
-        // まだPDFが読み込まれていない場合は新たに読み込む
-        const pdfjsLib = (window as any).pdfjsLib;
-        if (!pdfjsLib) return;
-        
-        const arrayBuffer = await pdfFile.arrayBuffer();
-        const loadingTask = pdfjsLib.getDocument({
-          data: arrayBuffer,
-          cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
-          cMapPacked: true,
-          standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/standard_fonts/'
-        });
-        
-        const pdf = await loadingTask.promise;
-        pdfDocumentRef.current = pdf; // 参照に保存
-        
-        renderPage(pdf, currentPage, zoom);
+        console.log(`ページ ${currentPage} をズーム ${zoom} でレンダリング`);
+        renderPage(pdfDocumentRef.current, currentPage, zoom);
       } catch (error) {
         console.error("ページレンダリングエラー:", error);
       }
@@ -144,9 +127,6 @@ const CanvasPDFViewer: React.FC = () => {
     loadImage();
   }, [imageFile]);
   
-  // 選択イベントを管理するための変数
-  const selectionChangeListenerRef = useRef<() => void>(() => {});
-  
   // ページのレンダリング関数
   const renderPage = async (pdf: any, pageNumber: number, scale: number) => {
     const canvas = canvasRef.current;
@@ -170,7 +150,7 @@ const CanvasPDFViewer: React.FC = () => {
       // キャンバスにPDFを描画
       await page.render(renderContext).promise;
       
-      // テキストレイヤーを生成（コピー&ペースト機能用）
+      // テキストレイヤーを生成
       try {
         // 既存のテキストレイヤーをクリア
         const existingTextLayer = container.querySelector('.text-layer');
@@ -204,8 +184,6 @@ const CanvasPDFViewer: React.FC = () => {
         // 選択を有効化するためのスタイル設定
         textLayerDiv.style.userSelect = 'text';
         (textLayerDiv.style as any).webkitUserSelect = 'text';
-        // TypeScript で認識できるプロパティ名を使用
-        (textLayerDiv.style as any).msUserSelect = 'text';
         
         // キャンバスの親要素に追加（同じ位置に配置）
         const canvasWrapper = canvas.parentNode as HTMLElement;
@@ -226,10 +204,6 @@ const CanvasPDFViewer: React.FC = () => {
           textLayerContainer.appendChild(textLayerDiv);
           canvasWrapper.appendChild(textLayerContainer);
           
-          // ネイティブなテキスト選択のためのセットアップ
-          let selectedRangeText = '';
-          let selectionTimeout: ReturnType<typeof setTimeout> | null = null;
-          
           // テキスト要素の重複防止用マップ
           const charPositionMap = new Map();
           
@@ -243,77 +217,64 @@ const CanvasPDFViewer: React.FC = () => {
             const baseTop = Math.round((item.transform[5] * scale - fontAscent * scale) * 10) / 10;
             const fontSize = fontHeight * scale;
             
-            // このテキスト要素が持つすべての文字の幅情報（あれば）
-            const charWidths = item.width ? new Array(item.str.length).fill(item.width / item.str.length) : null;
+            // 単語ごとに処理する（より自然な選択のため）
+            // 単語を形成する文字列
+            const words = item.str.match(/\S+|\s+/g) || [];
+            let charPosition = 0;
             
-            // 1文字ずつ処理
-            for (let i = 0; i < item.str.length; i++) {
-              const char = item.str[i];
+            for (const word of words) {
+              // ワード全体の幅を計算
+              const wordWidth = item.width ? (item.width / item.str.length) * word.length : fontSize * 0.6 * word.length;
+            
+              // 文字位置の計算
+              const wordLeft = baseLeft + charPosition * (item.width ? item.width / item.str.length : fontSize * 0.6);
+              charPosition += word.length;
               
-              // 文字の開始位置を計算（前の文字の累積幅に基づく）
-              let charLeft = baseLeft;
-              if (charWidths) {
-                for (let j = 0; j < i; j++) {
-                  charLeft += charWidths[j];
-                }
-              } else {
-                // 幅情報がない場合は推定
-                charLeft += i * (fontSize * 0.6); // 文字幅を推定
+              // 単語の位置キー
+              const wordKey = `word-${Math.round(wordLeft)}-${Math.round(baseTop)}`;
+              
+              // 単語が空白だけの場合はスキップ（ただし空白として扱う）
+              if (word.trim() === '') {
+                continue;
               }
               
-              // 位置をキーにして、既に同じ場所に文字があるかチェック
-              const posKey = `${Math.round(charLeft)}-${Math.round(baseTop)}`;
-              
-              // 既に同じ位置に文字がある場合はスキップ（重複防止）
-              if (charPositionMap.has(posKey)) {
-                const existingElement = charPositionMap.get(posKey);
-                const existingChar = existingElement.textContent || '';
-                
-                // 特殊文字と通常文字の判定
-                const isCurrentCharSpecial = char.trim() === '' || /[\s\x00-\x1F\x7F-\x9F]/.test(char);
-                const isExistingCharSpecial = existingChar.trim() === '' || /[\s\x00-\x1F\x7F-\x9F]/.test(existingChar);
-                
-                // 既存が特殊文字で新しい方が通常文字の場合のみ置き換え
-                if (isExistingCharSpecial && !isCurrentCharSpecial) {
-                  if (existingElement.parentNode) {
-                    existingElement.parentNode.removeChild(existingElement);
-                  }
-                  // 以下で新しい要素を作成して追加
-                } else {
-                  // それ以外の場合は既存を保持し、この文字をスキップ
-                  continue;
-                }
-              }
-              
-              // 文字要素を作成
-              const charElement = document.createElement('span');
-              charElement.textContent = char;
-              charElement.className = 'pdf-char';
-              charElement.style.position = 'absolute';
-              charElement.style.color = 'black'; // 実際に表示する
-              charElement.style.whiteSpace = 'pre';
-              charElement.style.cursor = 'text';
+              // 単語要素を作成
+              const wordElement = document.createElement('span');
+              wordElement.textContent = word;
+              wordElement.className = 'pdf-word';
+              wordElement.style.position = 'absolute';
+              wordElement.style.left = `${wordLeft}px`;
+              wordElement.style.top = `${baseTop}px`;
+              wordElement.style.fontSize = `${fontSize}px`;
+              wordElement.style.fontFamily = 'sans-serif';
+              wordElement.style.color = 'black';
+              wordElement.style.width = `${wordWidth}px`;
+              wordElement.style.height = `${fontSize * 1.2}px`;
+              wordElement.style.lineHeight = `${fontSize * 1.2}px`;
+              wordElement.style.whiteSpace = 'pre';
               
               // 選択可能に設定
-              charElement.style.userSelect = 'text';
-              (charElement.style as any).webkitUserSelect = 'text';
-              // TypeScript で認識できるプロパティ名を使用（ベンダープレフィックス）
-              (charElement.style as any).msUserSelect = 'text';
-              charElement.style.pointerEvents = 'auto';
+              wordElement.style.userSelect = 'text';
+              (wordElement.style as any).webkitUserSelect = 'text';
+              wordElement.style.pointerEvents = 'auto';
               
-              // 要素の位置とサイズを設定
-              charElement.style.left = `${charLeft}px`;
-              charElement.style.top = `${baseTop}px`;
-              charElement.style.fontSize = `${fontSize}px`;
-              charElement.style.fontFamily = 'sans-serif';
-              charElement.style.width = charWidths ? `${charWidths[i]}px` : `${fontSize * 0.6}px`;
-              charElement.style.height = `${fontSize * 1.2}px`;
-              charElement.style.lineHeight = `${fontSize * 1.2}px`;
+              // 余白と境界を調整
+              wordElement.style.margin = '0';
+              wordElement.style.padding = '0';
+              wordElement.style.boxSizing = 'border-box';
               
-              // マップに追加
-              charPositionMap.set(posKey, charElement);
-              // DOM に追加
-              textLayerDiv.appendChild(charElement);
+              // データ属性を設定（選択時に利用）
+              wordElement.dataset.word = word;
+              wordElement.dataset.position = String(charPosition);
+              
+              // カーソルスタイル
+              wordElement.style.cursor = 'text';
+              
+              // テキストレイヤーに追加
+              textLayerDiv.appendChild(wordElement);
+              
+              // マップに追加（重複チェック用）
+              charPositionMap.set(wordKey, wordElement);
             }
           }
           
@@ -325,124 +286,179 @@ const CanvasPDFViewer: React.FC = () => {
             const range = selection.getRangeAt(0);
             if (!range) return;
             
-            // 選択されたテキストを取得
-            selectedRangeText = range.toString().trim();
+            // textLayerContainerがまだ有効かチェック
+            const currentTextLayerContainer = document.querySelector('.text-layer-container') as HTMLElement;
+            if (!currentTextLayerContainer) return;
             
-            // 選択範囲が空の場合は処理終了
-            if (!selectedRangeText) {
-              return;
-            }
-            
-            // 選択テキストが変更されたことをログに出力
-            console.log('選択されたテキスト:', selectedRangeText);
-            
-            // 既存のコピーボタンを削除
-            const oldCopyButtons = document.querySelectorAll('.copy-button');
-            oldCopyButtons.forEach(btn => btn.parentNode?.removeChild(btn));
-            
-            // 選択範囲の情報を取得
-            const selectionRect = range.getBoundingClientRect();
-            if (!selectionRect || selectionRect.width === 0 || selectionRect.height === 0) return;
-            
-            // コピーボタンの追加をわずかに遅延させて、選択操作の完了を保証
-            if (selectionTimeout) {
-              clearTimeout(selectionTimeout);
-            }
-            
-            selectionTimeout = setTimeout(() => {
-              // 選択テキストが存在する場合のみ処理
-              if (selectedRangeText) {
-                // コピーボタンを作成
-                const copyButton = document.createElement('button');
-                copyButton.innerHTML = 'コピー';
-                copyButton.className = 'copy-button';
-                copyButton.style.position = 'absolute';
-                
-                // ボタンの位置を選択範囲の上部に配置
-                const containerRect = textLayerContainer.getBoundingClientRect();
-                copyButton.style.left = `${selectionRect.right - containerRect.left - 40}px`;
-                copyButton.style.top = `${selectionRect.top - containerRect.top - 30}px`;
-                
-                // ボタンのスタイル
-                copyButton.style.backgroundColor = 'rgba(66, 153, 225, 0.9)';
-                copyButton.style.color = 'white';
-                copyButton.style.border = 'none';
-                copyButton.style.borderRadius = '4px';
-                copyButton.style.padding = '4px 12px';
-                copyButton.style.fontSize = '12px';
-                copyButton.style.cursor = 'pointer';
-                copyButton.style.zIndex = '200';
-                copyButton.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-                textLayerContainer.appendChild(copyButton);
-                
-                // コピーボタンのクリックイベント
-                copyButton.addEventListener('click', () => {
-                  // 現代的なClipboard APIを使用
-                  if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(selectedRangeText)
-                      .then(() => {
-                        // コピー成功のフィードバック
-                        copyButton.innerHTML = 'コピー完了!';
-                        copyButton.style.backgroundColor = '#16a34a'; // green
-                        
-                        // 一定時間後にボタンを非表示
-                        setTimeout(() => {
-                          if (copyButton.parentNode) {
-                            copyButton.parentNode.removeChild(copyButton);
-                          }
-                        }, 1500);
-                      })
-                      .catch(err => {
-                        console.error('クリップボードへのコピーに失敗:', err);
-                        // フォールバック: テキストエリアを使用
-                        const textarea = document.createElement('textarea');
-                        textarea.value = selectedRangeText;
-                        textarea.style.position = 'absolute';
-                        textarea.style.left = '-9999px';
-                        document.body.appendChild(textarea);
-                        textarea.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(textarea);
-                        
-                        copyButton.innerHTML = 'コピー完了!';
-                        copyButton.style.backgroundColor = '#16a34a';
-                        
-                        setTimeout(() => {
-                          if (copyButton.parentNode) {
-                            copyButton.parentNode.removeChild(copyButton);
-                          }
-                        }, 1500);
-                      });
-                  } else {
-                    // 旧式ブラウザ用フォールバック
-                    const textarea = document.createElement('textarea');
-                    textarea.value = selectedRangeText;
-                    textarea.style.position = 'absolute';
-                    textarea.style.left = '-9999px';
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textarea);
-                    
-                    copyButton.innerHTML = 'コピー完了!';
-                    copyButton.style.backgroundColor = '#16a34a';
-                    
-                    setTimeout(() => {
-                      if (copyButton.parentNode) {
-                        copyButton.parentNode.removeChild(copyButton);
-                      }
-                    }, 1500);
+            try {
+              // 選択範囲内の要素を収集して、正確なテキストを構築する
+              const nodes: Node[] = [];
+              const nodeWalker = document.createTreeWalker(
+                textLayerDiv,
+                NodeFilter.SHOW_TEXT,
+                {
+                  acceptNode: function(node) {
+                    if (selection.containsNode(node, true)) {
+                      return NodeFilter.FILTER_ACCEPT;
+                    }
+                    return NodeFilter.FILTER_REJECT;
                   }
-                });
-                
-                // ボタンは一定時間後に自動的に非表示
-                setTimeout(() => {
-                  if (copyButton.parentNode) {
-                    copyButton.parentNode.removeChild(copyButton);
-                  }
-                }, 5000);
+                }
+              );
+              
+              let node;
+              while ((node = nodeWalker.nextNode())) {
+                nodes.push(node);
               }
-            }, 200); // 短い遅延で選択完了を待つ
+              
+              // 選択されたノードからテキストを集める
+              let textFromNodes = '';
+              for (const node of nodes) {
+                const parentElement = node.parentElement;
+                if (parentElement && parentElement.classList.contains('pdf-word')) {
+                  // 単語要素からデータを取得
+                  textFromNodes += parentElement.dataset.word || node.textContent || '';
+                  
+                  // 単語間のスペースを追加 (最後の単語には追加しない)
+                  if (node !== nodes[nodes.length - 1]) {
+                    textFromNodes += ' ';
+                  }
+                }
+              }
+              
+              // 選択されたテキストを取得（補助的な手段）
+              let rawSelectedText = range.toString().trim();
+              
+              // 最終的な選択テキスト（優先度: 1. ノードから集めたテキスト 2. rangeから直接取得したテキスト）
+              const newSelectedText = textFromNodes || rawSelectedText;
+              
+              // 選択範囲が空の場合は処理終了
+              if (!newSelectedText) {
+                return;
+              }
+              
+              // 選択テキストのクリーンアップ（重複した文字を削除）
+              // 同じ文字が連続して3文字以上繰り返される場合、2文字に制限
+              const cleanedText = newSelectedText.replace(/(.)\1{2,}/g, '$1$1');
+              
+              // stateを更新
+              setSelectedRangeText(cleanedText);
+              
+              // 選択テキストが変更されたことをログに出力
+              console.log('選択されたテキスト:', cleanedText);
+              
+              // 既存のコピーボタンを削除
+              const oldCopyButtons = document.querySelectorAll('.copy-button');
+              oldCopyButtons.forEach(btn => btn.parentNode?.removeChild(btn));
+              
+              // 選択範囲の情報を取得
+              const selectionRect = range.getBoundingClientRect();
+              if (!selectionRect || selectionRect.width === 0 || selectionRect.height === 0) return;
+              
+              // コピーボタンの作成と追加
+              const copyButton = document.createElement('button');
+              copyButton.innerHTML = 'コピー';
+              copyButton.className = 'copy-button';
+              copyButton.style.position = 'absolute';
+              
+              // ボタンの位置を選択範囲の上部に配置
+              const containerRect = currentTextLayerContainer.getBoundingClientRect();
+              copyButton.style.left = `${selectionRect.right - containerRect.left - 40}px`;
+              copyButton.style.top = `${selectionRect.top - containerRect.top - 30}px`;
+              
+              // ボタンのスタイル
+              copyButton.style.backgroundColor = 'rgba(66, 153, 225, 0.9)';
+              copyButton.style.color = 'white';
+              copyButton.style.border = 'none';
+              copyButton.style.borderRadius = '4px';
+              copyButton.style.padding = '4px 12px';
+              copyButton.style.fontSize = '12px';
+              copyButton.style.cursor = 'pointer';
+              copyButton.style.zIndex = '200';
+              copyButton.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+              currentTextLayerContainer.appendChild(copyButton);
+              
+              // コピーボタンのクリックイベント
+              copyButton.addEventListener('click', () => {
+                // 選択テキストを最終確認
+                const finalText = cleanedText.trim();
+                
+                // 現代的なClipboard APIを使用
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(finalText)
+                    .then(() => {
+                      // テキストボックスとしてキャンバスに追加
+                      if (finalText.trim()) {
+                        // ポジションを計算 - キャンバスの左上を基準に
+                        const rect = canvas.getBoundingClientRect();
+                        const positionX = (selectionRect.left - rect.left) / scale;
+                        const positionY = (selectionRect.top - rect.top) / scale;
+                        
+                        // テキストをキャンバスに追加
+                        addTextBox(finalText, positionX, positionY);
+                      }
+                      
+                      // コピー成功のフィードバック
+                      copyButton.innerHTML = 'コピー完了!';
+                      copyButton.style.backgroundColor = '#16a34a'; // green
+                      
+                      // 一定時間後にボタンを非表示
+                      setTimeout(() => {
+                        if (copyButton.parentNode) {
+                          copyButton.parentNode.removeChild(copyButton);
+                        }
+                      }, 1500);
+                    })
+                    .catch(err => {
+                      console.error('クリップボードへのコピーに失敗:', err);
+                      copyButton.innerHTML = 'エラー';
+                      copyButton.style.backgroundColor = '#e11d48';
+                      
+                      setTimeout(() => {
+                        if (copyButton.parentNode) {
+                          copyButton.parentNode.removeChild(copyButton);
+                        }
+                      }, 1500);
+                    });
+                } else {
+                  // 旧式ブラウザ用フォールバック
+                  const textarea = document.createElement('textarea');
+                  textarea.value = finalText;
+                  textarea.style.position = 'absolute';
+                  textarea.style.left = '-9999px';
+                  document.body.appendChild(textarea);
+                  textarea.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(textarea);
+                  
+                  // キャンバスに追加
+                  if (finalText.trim()) {
+                    const rect = canvas.getBoundingClientRect();
+                    const positionX = (selectionRect.left - rect.left) / scale;
+                    const positionY = (selectionRect.top - rect.top) / scale;
+                    addTextBox(finalText, positionX, positionY);
+                  }
+                  
+                  copyButton.innerHTML = 'コピー完了!';
+                  copyButton.style.backgroundColor = '#16a34a';
+                  
+                  setTimeout(() => {
+                    if (copyButton.parentNode) {
+                      copyButton.parentNode.removeChild(copyButton);
+                    }
+                  }, 1500);
+                }
+              });
+              
+              // ボタンは一定時間後に自動的に非表示
+              setTimeout(() => {
+                if (copyButton.parentNode) {
+                  copyButton.parentNode.removeChild(copyButton);
+                }
+              }, 5000);
+            } catch (error) {
+              console.error('選択処理エラー:', error);
+            }
           };
           
           // 選択変更イベントリスナーを追加してリファレンスを保存
@@ -450,14 +466,17 @@ const CanvasPDFViewer: React.FC = () => {
           selectionChangeListenerRef.current = handleSelectionChange;
           
           // テキストコンテナのクリックイベント
-          textLayerContainer.addEventListener('mousedown', (e) => {
-            // 左クリックのみ処理
-            if (e.button !== 0) return;
-            
-            // 既存のコピーボタンをクリア
-            const oldCopyButtons = document.querySelectorAll('.copy-button');
-            oldCopyButtons.forEach(btn => btn.parentNode?.removeChild(btn));
-          });
+          const textLayerContainerEl = document.querySelector('.text-layer-container') as HTMLElement;
+          if (textLayerContainerEl) {
+            textLayerContainerEl.addEventListener('mousedown', (e: MouseEvent) => {
+              // 左クリックのみ処理
+              if (e.button !== 0) return;
+              
+              // 既存のコピーボタンをクリア
+              const oldCopyButtons = document.querySelectorAll('.copy-button');
+              oldCopyButtons.forEach(btn => btn.parentNode?.removeChild(btn));
+            });
+          }
         }
         
         console.log('テキストレイヤーを生成しました（コピー&ペースト機能が利用可能）');
@@ -713,4 +732,4 @@ const CanvasPDFViewer: React.FC = () => {
   );
 };
 
-export default CanvasPDFViewer;
+export default NewCanvasPDFViewer;
