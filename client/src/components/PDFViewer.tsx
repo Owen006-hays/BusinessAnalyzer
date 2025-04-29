@@ -4,29 +4,24 @@ import { useAnalysisContext } from "@/context/AnalysisContext";
 import { Button } from "@/components/ui/button";
 import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
 
-// Import PDF.js with ESM imports
+// Import PDF.js correctly with workerSrc configuration
 import * as pdfjsLib from 'pdfjs-dist';
 import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
+
+// 型定義がない場合の代替策として、pdfjsLibからのGlobalWorkerOptionsを使用
+const GlobalWorkerOptions = (pdfjsLib as any).GlobalWorkerOptions;
 
 // PDF.js関連のグローバル設定
 (function setupPdfJs() {
   try {
     console.log('Configuring PDF.js...');
     
-    // PDF.jsワーカーレスモードを設定
-    if (pdfjsLib && (pdfjsLib as any).GlobalWorkerOptions) {
-      console.log('Setting PDF.js to workerless mode');
-      // ワーカーレスモードを強制
-      (pdfjsLib as any).GlobalWorkerOptions.disableWorker = true;
-      
-      // ワーカーが必要ない場合に使用されるダミーパス
-      (pdfjsLib as any).GlobalWorkerOptions.workerSrc = '';
-    }
+    // PDF.jsワーカーを設定
+    // ワーカーなしで実行するために空文字列を明示的に設定
+    GlobalWorkerOptions.workerSrc = '';
     
-    // disableAutoFetch, disableFontFace などの追加設定
-    if ((pdfjsLib as any).getDocument) {
-      console.log('Additional PDF.js configuration applied');
-    }
+    // 設定を確認
+    console.log('PDF.js worker configured successfully:', GlobalWorkerOptions.workerSrc);
     
     // PDF.jsライブラリのバージョン情報をログに出力（診断用）
     if ((pdfjsLib as any).version) {
@@ -142,12 +137,9 @@ const PDFViewer: React.FC = () => {
     
     const loadPdf = async () => {
       try {
-        // 明示的にワーカーなしモード設定
-        try {
-          (pdfjsLib as any).GlobalWorkerOptions.disableWorker = true;
-        } catch (e) {
-          console.warn('PDF.js worker config error:', e);
-        }
+        // ワーカーパスをすでに設定済みのため、
+        // この部分は不要になりました。
+        // すでに初期化時にworkerSrcを設定しています。
         
         // ファイルの読み込み試行
         console.log("PDFファイルの読み込みを開始:", pdfFile.name);

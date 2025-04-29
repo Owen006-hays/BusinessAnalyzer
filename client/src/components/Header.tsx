@@ -31,14 +31,27 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
+    // ファイルサイズチェック
+    if (file.size > 50 * 1024 * 1024) { // 50MB以上
+      toast({
+        title: "ファイルサイズが大きすぎます",
+        description: "50MB以下のファイルをアップロードしてください。",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // PDFファイル処理
     if (file.type === "application/pdf") {
+      console.log("ヘッダーからPDFファイルを処理:", file.name, file.size);
       onPdfUpload(file);
       return;
     }
     
-    // 画像ファイル処理（JPEGやPNG）
-    if (file.type.startsWith("image/") && onImageDisplay) {
+    // 画像ファイル処理（JPEG、PNG、GIF）
+    const validImageTypes = ["image/jpeg", "image/png", "image/gif"];
+    if (validImageTypes.includes(file.type) && onImageDisplay) {
+      console.log("ヘッダーから画像ファイルを処理:", file.name, file.size, file.type);
       onImageDisplay(file);
       return;
     }
@@ -46,7 +59,7 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
     // サポートされていないファイル形式
     toast({
       title: "サポートされていないファイル形式",
-      description: "PDFファイルまたは画像ファイル(JPEG, PNG)をアップロードしてください。",
+      description: `PDFファイルまたは画像ファイル(JPEG, PNG, GIF)をアップロードしてください。選択されたファイル形式: ${file.type || "不明な形式"}`,
       variant: "destructive",
     });
   };
