@@ -1,20 +1,95 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertTextBoxSchema, insertAnalysisSchema } from "@shared/schema";
+import { insertTextBoxSchema, insertAnalysisSchema, insertSheetSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes for our application
   
-  // TextBox routes
-  app.get("/api/textboxes/:analysisId", async (req, res) => {
+  // Sheet routes
+  app.get("/api/sheets/analysis/:analysisId", async (req, res) => {
     const analysisId = parseInt(req.params.analysisId, 10);
     if (isNaN(analysisId)) {
       return res.status(400).json({ message: "Invalid analysis ID" });
     }
     
-    const textBoxes = await storage.getTextBoxesByAnalysisId(analysisId);
+    const sheets = await storage.getSheetsByAnalysisId(analysisId);
+    res.json(sheets);
+  });
+  
+  app.get("/api/sheets/:id", async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid sheet ID" });
+    }
+    
+    const sheet = await storage.getSheet(id);
+    if (!sheet) {
+      return res.status(404).json({ message: "Sheet not found" });
+    }
+    
+    res.json(sheet);
+  });
+  
+  app.post("/api/sheets", async (req, res) => {
+    try {
+      const sheetData = insertSheetSchema.parse(req.body);
+      const sheet = await storage.createSheet(sheetData);
+      res.status(201).json(sheet);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid sheet data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create sheet" });
+    }
+  });
+  
+  app.patch("/api/sheets/:id", async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid sheet ID" });
+    }
+    
+    try {
+      const updateData = insertSheetSchema.partial().parse(req.body);
+      const updatedSheet = await storage.updateSheet(id, updateData);
+      
+      if (!updatedSheet) {
+        return res.status(404).json({ message: "Sheet not found" });
+      }
+      
+      res.json(updatedSheet);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid update data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update sheet" });
+    }
+  });
+  
+  app.delete("/api/sheets/:id", async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid sheet ID" });
+    }
+    
+    const deleted = await storage.deleteSheet(id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Sheet not found" });
+    }
+    
+    res.status(204).end();
+  });
+  
+  // TextBox routes
+  app.get("/api/textboxes/:sheetId", async (req, res) => {
+    const sheetId = parseInt(req.params.sheetId, 10);
+    if (isNaN(sheetId)) {
+      return res.status(400).json({ message: "Invalid sheet ID" });
+    }
+    
+    const textBoxes = await storage.getTextBoxesBySheetId(sheetId);
     res.json(textBoxes);
   });
   

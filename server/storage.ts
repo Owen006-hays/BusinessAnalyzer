@@ -1,7 +1,8 @@
 import { 
   users, type User, type InsertUser,
   textBoxes, type TextBox, type InsertTextBox,
-  analyses, type Analysis, type InsertAnalysis 
+  analyses, type Analysis, type InsertAnalysis,
+  sheets, type Sheet, type InsertSheet
 } from "@shared/schema";
 
 // Storage interface for our application
@@ -11,8 +12,15 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
+  // Sheet methods
+  getSheetsByAnalysisId(analysisId: number): Promise<Sheet[]>;
+  getSheet(id: number): Promise<Sheet | undefined>;
+  createSheet(sheet: InsertSheet): Promise<Sheet>;
+  updateSheet(id: number, sheet: Partial<InsertSheet>): Promise<Sheet | undefined>;
+  deleteSheet(id: number): Promise<boolean>;
+  
   // TextBox methods
-  getTextBoxesByAnalysisId(analysisId: number): Promise<TextBox[]>;
+  getTextBoxesBySheetId(sheetId: number): Promise<TextBox[]>;
   createTextBox(textBox: InsertTextBox): Promise<TextBox>;
   updateTextBox(id: number, textBox: Partial<InsertTextBox>): Promise<TextBox | undefined>;
   deleteTextBox(id: number): Promise<boolean>;
@@ -28,19 +36,23 @@ export interface IStorage {
 // In-memory implementation of the storage interface
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
+  private sheets: Map<number, Sheet>;
   private textBoxes: Map<number, TextBox>;
   private analyses: Map<number, Analysis>;
   
   private userId: number;
+  private sheetId: number;
   private textBoxId: number;
   private analysisId: number;
   
   constructor() {
     this.users = new Map();
+    this.sheets = new Map();
     this.textBoxes = new Map();
     this.analyses = new Map();
     
     this.userId = 1;
+    this.sheetId = 1;
     this.textBoxId = 1;
     this.analysisId = 1;
     
@@ -48,12 +60,21 @@ export class MemStorage implements IStorage {
     const defaultAnalysis: Analysis = {
       id: this.analysisId++,
       name: "New Analysis",
-      template: null,
       pdfName: null,
       imageName: null,
       createdAt: new Date().toISOString(),
     };
     this.analyses.set(defaultAnalysis.id, defaultAnalysis);
+    
+    // Create a default sheet for the analysis
+    const defaultSheet: Sheet = {
+      id: this.sheetId++,
+      name: "Sheet 1",
+      template: null,
+      order: 1,
+      analysisId: defaultAnalysis.id,
+    };
+    this.sheets.set(defaultSheet.id, defaultSheet);
   }
   
   // User methods
@@ -74,10 +95,67 @@ export class MemStorage implements IStorage {
     return user;
   }
   
+  // Sheet methods
+  async getSheetsByAnalysisId(analysisId: number): Promise<Sheet[]> {
+    return Array.from(this.sheets.values())
+      .filter(sheet => sheet.analysisId === analysisId)
+      .sort((a, b) => a.order - b.order); // 順番に並べ替え
+  }
+  
+  async getSheet(id: number): Promise<Sheet | undefined> {
+    return this.sheets.get(id);
+  }
+  
+  async createSheet(insertSheet: InsertSheet): Promise<Sheet> {
+    const id = this.sheetId++;
+    
+    const sheet: Sheet = {
+      id,
+      name: insertSheet.name,
+      template: insertSheet.template ?? null,
+      order: insertSheet.order,
+      analysisId: insertSheet.analysisId,
+    };
+    
+    this.sheets.set(id, sheet);
+    return sheet;
+  }
+  
+  async updateSheet(id: number, updateData: Partial<InsertSheet>): Promise<Sheet | undefined> {
+    const existingSheet = this.sheets.get(id);
+    if (!existingSheet) return undefined;
+    
+    const updatedSheet: Sheet = { ...existingSheet, ...updateData };
+    this.sheets.set(id, updatedSheet);
+    return updatedSheet;
+  }
+  
+  async deleteSheet(id: number): Promise<boolean> {
+    // シートに関連付けられたテキストボックスを削除
+    Array.from(this.textBoxes.values())
+      .filter(textBox => textBox.sheetId === id)
+      .forEach(textBox => this.textBoxes.delete(textBox.id));
+    
+    // シートを削除
+    return this.sheets.delete(id);
+  }
+  
   // TextBox methods
-  async getTextBoxesByAnalysisId(analysisId: number): Promise<TextBox[]> {
+  async getTextBoxesBySheetId(sheetId: number): Promise<TextBox[]> {
     return Array.from(this.textBoxes.values()).filter(
-      (textBox) => textBox.analysisId === analysisId,
+      (textBox) => textBox.sheetId === sheetId,
+    );
+  }
+  
+  // 後方互換性のため、analysisIdに関連するすべてのシートのテキストボックスを取得するメソッド
+  async getTextBoxesByAnalysisId(analysisId: number): Promise<TextBox[]> {
+    // まず関連するシートをすべて取得
+    const sheets = await this.getSheetsByAnalysisId(analysisId);
+    const sheetIds = sheets.map(sheet => sheet.id);
+    
+    // 各シートに関連するテキストボックスを取得
+    return Array.from(this.textBoxes.values()).filter(
+      (textBox) => sheetIds.includes(textBox.sheetId)
     );
   }
   
@@ -93,7 +171,8 @@ export class MemStorage implements IStorage {
       width: insertTextBox.width ?? 200, // デフォルト値を設定
       height: insertTextBox.height ?? null,
       color: insertTextBox.color ?? null,
-      analysisId: insertTextBox.analysisId
+      zone: insertTextBox.zone ?? null,
+      sheetId: insertTextBox.sheetId
     };
     
     this.textBoxes.set(id, textBox);
@@ -129,7 +208,6 @@ export class MemStorage implements IStorage {
     const analysis: Analysis = {
       id,
       name: insertAnalysis.name,
-      template: insertAnalysis.template ?? null,
       pdfName: insertAnalysis.pdfName ?? null,
       imageName: insertAnalysis.imageName ?? null,
       createdAt: insertAnalysis.createdAt
@@ -147,7 +225,6 @@ export class MemStorage implements IStorage {
     const updatedAnalysis: Analysis = {
       ...existingAnalysis,
       name: updateData.name !== undefined ? updateData.name : existingAnalysis.name,
-      template: updateData.template !== undefined ? updateData.template : existingAnalysis.template,
       pdfName: updateData.pdfName !== undefined ? updateData.pdfName : existingAnalysis.pdfName,
       imageName: updateData.imageName !== undefined ? updateData.imageName : existingAnalysis.imageName,
       createdAt: updateData.createdAt !== undefined ? updateData.createdAt : existingAnalysis.createdAt
@@ -158,12 +235,15 @@ export class MemStorage implements IStorage {
   }
   
   async deleteAnalysis(id: number): Promise<boolean> {
-    // Delete all textboxes associated with this analysis
-    Array.from(this.textBoxes.values())
-      .filter(textBox => textBox.analysisId === id)
-      .forEach(textBox => this.textBoxes.delete(textBox.id));
+    // まず、この分析に関連するすべてのシートを取得
+    const sheets = await this.getSheetsByAnalysisId(id);
     
-    // Delete the analysis
+    // 各シートとそれに関連するテキストボックスを削除
+    for (const sheet of sheets) {
+      await this.deleteSheet(sheet.id);
+    }
+    
+    // 分析を削除
     return this.analyses.delete(id);
   }
 }
