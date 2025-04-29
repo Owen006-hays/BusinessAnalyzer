@@ -2,7 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAnalysisContext } from "@/context/AnalysisContext";
 import { Button } from "@/components/ui/button";
 import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
-// 注意: PDFJSは直接インポートせず、windowのグローバルオブジェクトを使用
+import * as pdfjsLib from 'pdfjs-dist';
+import { GlobalWorkerOptions } from 'pdfjs-dist';
+
+// PDF.jsのワーカーを設定
+GlobalWorkerOptions.workerSrc = `//cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 
 /**
  * キャンバスベースのPDFビューワー
@@ -28,8 +32,6 @@ const NewCanvasPDFViewer: React.FC = () => {
   useEffect(() => {
     if (!pdfFile) return;
     
-    // すでにpdfjs参照がコードから削除されており、windowのグローバルオブジェクトを使用していることを確認
-    
     // 以前の状態をクリア
     setImageUrl(null);
     setErrorMessage(null);
@@ -39,19 +41,14 @@ const NewCanvasPDFViewer: React.FC = () => {
         // ArrayBufferに変換
         const arrayBuffer = await pdfFile.arrayBuffer();
         
-        // グローバルのPDF.jsを使用
-        const pdfjsLib = (window as any).pdfjsLib;
-        if (!pdfjsLib) {
-          setErrorMessage("PDF.jsライブラリが見つかりませんでした。");
-          return;
-        }
-        
+        // PDF.jsを直接使用する
+        console.log("PDF.jsを使用してファイルを読み込みます", pdfFile.name, pdfFile.size);
         // PDFドキュメントを読み込み（日本語フォントサポート付き）
         const loadingTask = pdfjsLib.getDocument({
           data: arrayBuffer,
-          cMapUrl: 'https://unpkg.com/pdfjs-dist@5.2.133/cmaps/',
+          cMapUrl: `//cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/cmaps/`,
           cMapPacked: true,
-          standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@5.2.133/standard_fonts/'
+          standardFontDataUrl: `//cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`
         });
         
         // タイムアウト処理
