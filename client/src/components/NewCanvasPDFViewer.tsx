@@ -5,8 +5,8 @@ import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react
 import * as pdfjsLib from 'pdfjs-dist';
 import { GlobalWorkerOptions } from 'pdfjs-dist';
 
-// PDF.jsのワーカーを設定
-GlobalWorkerOptions.workerSrc = `//cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+// PDF.jsワーカーの設定 - 空の文字列を設定するとfakeWorkerが使用される
+GlobalWorkerOptions.workerSrc = '';
 
 /**
  * キャンバスベースのPDFビューワー
@@ -43,12 +43,9 @@ const NewCanvasPDFViewer: React.FC = () => {
         
         // PDF.jsを直接使用する
         console.log("PDF.jsを使用してファイルを読み込みます", pdfFile.name, pdfFile.size);
-        // PDFドキュメントを読み込み（日本語フォントサポート付き）
+        // PDFドキュメントを読み込み - 簡易版設定（一部機能制限あり）
         const loadingTask = pdfjsLib.getDocument({
-          data: arrayBuffer,
-          cMapUrl: `//cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/cmaps/`,
-          cMapPacked: true,
-          standardFontDataUrl: `//cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`
+          data: arrayBuffer
         });
         
         // タイムアウト処理
