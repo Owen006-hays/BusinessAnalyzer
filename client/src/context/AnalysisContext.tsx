@@ -19,6 +19,14 @@ interface AnalysisContextType {
   updateTextBox: (id: number, data: Partial<TextBox>) => void;
   deleteTextBox: (id: number) => void;
   
+  // Sheet related
+  sheets: Sheet[];
+  currentSheetId: number;
+  setCurrentSheetId: (sheetId: number) => void;
+  addSheet: (name: string) => void;
+  updateSheet: (id: number, data: Partial<Sheet>) => void;
+  deleteSheet: (id: number) => void;
+  
   // Template related
   currentTemplate: string | null;
   setCurrentTemplate: (template: string | null) => void;
@@ -50,6 +58,10 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
   const [analysisId, setAnalysisId] = useState<number>(1); // Default analysis ID
   const [analysisName, setAnalysisName] = useState<string>("New Analysis");
   
+  // State for sheets
+  const [sheets, setSheets] = useState<Sheet[]>([]);
+  const [currentSheetId, setCurrentSheetId] = useState<number>(1); // デフォルトシートID
+  
   // State for template
   const [currentTemplate, setCurrentTemplate] = useState<string | null>(null);
   
@@ -59,11 +71,33 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
   // Refs
   const canvasRef = useRef<HTMLDivElement>(null);
   
-  // Fetch text boxes for the current analysis
+  // Fetch sheets for the current analysis
+  useEffect(() => {
+    const fetchSheets = async () => {
+      try {
+        const response = await fetch(`/api/sheets/analysis/${analysisId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setSheets(data);
+          
+          // シートが存在する場合は最初のシートを選択
+          if (data.length > 0) {
+            setCurrentSheetId(data[0].id);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching sheets:", error);
+      }
+    };
+    
+    fetchSheets();
+  }, [analysisId]);
+  
+  // Fetch text boxes for the current sheet
   useEffect(() => {
     const fetchTextBoxes = async () => {
       try {
-        const response = await fetch(`/api/textboxes/${analysisId}`);
+        const response = await fetch(`/api/textboxes/${currentSheetId}`);
         if (response.ok) {
           const data = await response.json();
           setTextBoxes(data);
@@ -74,8 +108,65 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     
     fetchTextBoxes();
-  }, [analysisId]);
+  }, [currentSheetId]);
   
+  // Mutations for sheets
+  const createSheetMutation = useMutation({
+    mutationFn: async (sheet: Omit<Sheet, "id">) => {
+      const res = await apiRequest("POST", "/api/sheets", sheet);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sheets/analysis", analysisId] });
+      // Re-fetch sheets
+      fetch(`/api/sheets/analysis/${analysisId}`)
+        .then(res => res.json())
+        .then(data => {
+          setSheets(data);
+          // 新しいシートが作成された場合、それを選択
+          if (data.length > 0) {
+            setCurrentSheetId(data[data.length - 1].id);
+          }
+        })
+        .catch(err => console.error("Error refetching sheets:", err));
+    },
+  });
+  
+  const updateSheetMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<Sheet> }) => {
+      const res = await apiRequest("PATCH", `/api/sheets/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sheets/analysis", analysisId] });
+      // Re-fetch sheets
+      fetch(`/api/sheets/analysis/${analysisId}`)
+        .then(res => res.json())
+        .then(data => setSheets(data))
+        .catch(err => console.error("Error refetching sheets:", err));
+    },
+  });
+  
+  const deleteSheetMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/sheets/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sheets/analysis", analysisId] });
+      // Re-fetch sheets
+      fetch(`/api/sheets/analysis/${analysisId}`)
+        .then(res => res.json())
+        .then(data => {
+          setSheets(data);
+          // シートが削除された場合、最初のシートを選択
+          if (data.length > 0) {
+            setCurrentSheetId(data[0].id);
+          }
+        })
+        .catch(err => console.error("Error refetching sheets:", err));
+    },
+  });
+
   // Mutations for text boxes
   const createTextBoxMutation = useMutation({
     mutationFn: async (textBox: Omit<TextBox, "id">) => {
@@ -83,9 +174,9 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/textboxes", analysisId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/textboxes", currentSheetId] });
       // Re-fetch text boxes
-      fetch(`/api/textboxes/${analysisId}`)
+      fetch(`/api/textboxes/${currentSheetId}`)
         .then(res => res.json())
         .then(data => setTextBoxes(data))
         .catch(err => console.error("Error refetching text boxes:", err));
@@ -98,9 +189,9 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/textboxes", analysisId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/textboxes", currentSheetId] });
       // Re-fetch text boxes
-      fetch(`/api/textboxes/${analysisId}`)
+      fetch(`/api/textboxes/${currentSheetId}`)
         .then(res => res.json())
         .then(data => setTextBoxes(data))
         .catch(err => console.error("Error refetching text boxes:", err));
@@ -112,9 +203,9 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       await apiRequest("DELETE", `/api/textboxes/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/textboxes", analysisId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/textboxes", currentSheetId] });
       // Re-fetch text boxes
-      fetch(`/api/textboxes/${analysisId}`)
+      fetch(`/api/textboxes/${currentSheetId}`)
         .then(res => res.json())
         .then(data => setTextBoxes(data))
         .catch(err => console.error("Error refetching text boxes:", err));
@@ -138,10 +229,10 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       width: 200,
       height: null,
       color: "white",
-      analysisId,
+      sheetId: currentSheetId,
       zone: null, // zoneプロパティを追加
     });
-  }, [analysisId, createTextBoxMutation]);
+  }, [currentSheetId, createTextBoxMutation]);
   
   // 新機能: テンプレートの特定ゾーンにテキストボックスを追加
   const addTextBoxToZone = useCallback((content: string, zone: string) => {
@@ -208,11 +299,11 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         width: Math.min(zoneWidth - 50, 200), // ゾーン幅に合わせる (余白を考慮)
         height: null,
         color,
-        analysisId,
+        sheetId: currentSheetId,
         zone, // ゾーン情報を保存
       });
     }, 100); // 100ms遅延
-  }, [analysisId, createTextBoxMutation, canvasRef, currentTemplate, setCurrentTemplate, addTextBox]);
+  }, [currentSheetId, createTextBoxMutation, canvasRef, currentTemplate, setCurrentTemplate, addTextBox]);
   
   // テンプレートごとのゾーン名を取得
   const getZonesForTemplate = useCallback((template: string | null): string[] => {
@@ -242,15 +333,41 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
     deleteTextBoxMutation.mutate(id);
   }, [deleteTextBoxMutation]);
   
+  // Add a new sheet
+  const addSheet = useCallback((name: string) => {
+    createSheetMutation.mutate({
+      name,
+      analysisId,
+      template: null, // 新規シートはテンプレートなし
+    });
+  }, [analysisId, createSheetMutation]);
+  
+  // Update an existing sheet
+  const updateSheet = useCallback((id: number, data: Partial<Sheet>) => {
+    updateSheetMutation.mutate({ id, data });
+  }, [updateSheetMutation]);
+  
+  // Delete a sheet
+  const deleteSheet = useCallback((id: number) => {
+    // シートが1つだけの場合は削除しない
+    if (sheets.length <= 1) {
+      console.warn("Cannot delete the last sheet");
+      return;
+    }
+    deleteSheetMutation.mutate(id);
+  }, [sheets.length, deleteSheetMutation]);
+  
   // Organize text boxes into template zones
   const setTextBoxesByZone = useCallback((template: string) => {
-    // This would position text boxes in their respective template zones
-    // For now, we just update the template property of the analysis
-    updateAnalysisMutation.mutate({
-      id: analysisId,
-      data: { template },
-    });
-  }, [analysisId, updateAnalysisMutation]);
+    // テンプレートはシートごとに設定するように変更
+    if (sheets.length > 0) {
+      // 現在のシートのテンプレートを更新
+      updateSheetMutation.mutate({
+        id: currentSheetId,
+        data: { template },
+      });
+    }
+  }, [currentSheetId, updateSheetMutation, sheets.length]);
   
   // Save the current analysis
   const saveAnalysis = useCallback(async () => {
@@ -258,29 +375,62 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       id: analysisId,
       data: {
         name: analysisName,
-        template: currentTemplate,
         pdfName: pdfFile?.name || null,
         // 画像ファイル情報があれば保存
         imageName: imageFile?.name || null,
       },
     });
-  }, [analysisId, analysisName, currentTemplate, pdfFile, imageFile, updateAnalysisMutation]);
+
+    // テンプレート情報は現在のシートに保存
+    if (sheets.length > 0) {
+      await updateSheetMutation.mutateAsync({
+        id: currentSheetId,
+        data: { template: currentTemplate },
+      });
+    }
+  }, [
+    analysisId, 
+    analysisName, 
+    pdfFile, 
+    imageFile, 
+    updateAnalysisMutation, 
+    sheets.length, 
+    currentSheetId, 
+    currentTemplate, 
+    updateSheetMutation
+  ]);
   
   // Load an analysis by ID
   const loadAnalysis = useCallback(async (id: number) => {
     try {
+      // 分析の基本情報を取得
       const res = await fetch(`/api/analyses/${id}`);
       const analysis: Analysis = await res.json();
       
       setAnalysisId(analysis.id);
       setAnalysisName(analysis.name);
-      setCurrentTemplate(analysis.template);
       
-      // Fetch text boxes for this analysis
-      const textBoxesRes = await fetch(`/api/textboxes/${id}`);
-      if (textBoxesRes.ok) {
-        const textBoxesData = await textBoxesRes.json();
-        setTextBoxes(textBoxesData);
+      // シート情報を取得
+      const sheetsRes = await fetch(`/api/sheets/analysis/${id}`);
+      if (sheetsRes.ok) {
+        const sheetsData = await sheetsRes.json();
+        setSheets(sheetsData);
+        
+        if (sheetsData.length > 0) {
+          // 最初のシートを選択
+          const firstSheet = sheetsData[0];
+          setCurrentSheetId(firstSheet.id);
+          
+          // シートからテンプレート情報を取得
+          setCurrentTemplate(firstSheet.template);
+          
+          // シートに関連するテキストボックスを取得
+          const textBoxesRes = await fetch(`/api/textboxes/${firstSheet.id}`);
+          if (textBoxesRes.ok) {
+            const textBoxesData = await textBoxesRes.json();
+            setTextBoxes(textBoxesData);
+          }
+        }
       }
     } catch (error) {
       console.error("Error loading analysis:", error);
