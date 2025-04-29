@@ -203,9 +203,9 @@ const CanvasPDFViewer: React.FC = () => {
         
         // 選択を有効化するためのスタイル設定
         textLayerDiv.style.userSelect = 'text';
-        textLayerDiv.style.WebkitUserSelect = 'text';
+        (textLayerDiv.style as any).webkitUserSelect = 'text';
         // TypeScript で認識できるプロパティ名を使用
-        (textLayerDiv.style as any).MsUserSelect = 'text';
+        (textLayerDiv.style as any).msUserSelect = 'text';
         
         // キャンバスの親要素に追加（同じ位置に配置）
         const canvasWrapper = canvas.parentNode as HTMLElement;
@@ -296,9 +296,9 @@ const CanvasPDFViewer: React.FC = () => {
               
               // 選択可能に設定
               charElement.style.userSelect = 'text';
-              charElement.style.WebkitUserSelect = 'text';
-              // TypeScript で認識できるプロパティ名を使用
-              (charElement.style as any).MsUserSelect = 'text';
+              (charElement.style as any).webkitUserSelect = 'text';
+              // TypeScript で認識できるプロパティ名を使用（ベンダープレフィックス）
+              (charElement.style as any).msUserSelect = 'text';
               charElement.style.pointerEvents = 'auto';
               
               // 要素の位置とサイズを設定
