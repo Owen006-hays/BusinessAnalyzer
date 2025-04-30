@@ -135,21 +135,17 @@ const BlobURLPDFViewer: React.FC = () => {
         if (pdfURL) URL.revokeObjectURL(pdfURL);
         if (imageUrl) URL.revokeObjectURL(imageUrl);
         
-        // 画像ファイルの検証 - MIMEタイプと拡張子で検証するが、
-        // 形式が不明でもエラーにはせず、とにかく表示を試みる
-        const fileExt = imageFile.name.split('.').pop()?.toLowerCase();
-        const knownImageExt = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'tiff'];
+        console.log("画像ファイル処理を開始:", imageFile.name, imageFile.type, imageFile.size);
         
-        if (!imageFile.type.startsWith('image/') && !knownImageExt.includes(fileExt || '')) {
-          console.warn("画像ファイルの種類が認識できませんが、表示を試みます:", fileExt, imageFile.type);
-        }
-        
-        // 画像のBlobURLを生成
+        // ファイルが実際に画像かどうかを確認せず、単純にBlobURLを生成する
+        // text()の使用を避け、ファイルの中身を読まない
         const url = URL.createObjectURL(imageFile);
+        console.log("生成したURL:", url);
+        
+        // ステート更新
         setImageUrl(url);
         setPdfURL(null);
         setErrorMessage(null);
-        console.log("画像のURLを生成しました:", url);
         
         // コンポーネントのアンマウント時にURLをクリーンアップ
         return () => {
@@ -430,7 +426,7 @@ const BlobURLPDFViewer: React.FC = () => {
           <input
             ref={fileInputRef}
             type="file"
-            accept="application/pdf,image/jpeg,image/png,image/gif"
+            accept="application/pdf,image/*"
             className="hidden"
             onChange={handleFileUpload}
           />
@@ -507,19 +503,34 @@ const BlobURLPDFViewer: React.FC = () => {
             <img 
               src={imageUrl} 
               alt="アップロードされた画像" 
-              className="max-w-full max-h-[calc(100vh-8rem)] rounded shadow-lg"
+              className="max-w-full max-h-[calc(100vh-8rem)] rounded shadow-lg object-contain"
               // 画像からテキスト選択できるようにする
               style={{ userSelect: 'text' }}
+              onError={(e) => {
+                console.error("画像の読み込みエラー", e);
+                setErrorMessage("画像の読み込みに失敗しました。別の画像ファイルをお試しください。");
+                setImageUrl(null);
+              }}
             />
-            <Button
-              variant="outline"
-              size="sm"
-              className="absolute top-4 right-4 bg-white text-gray-700 border border-gray-300"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <FileUp className="mr-2 h-4 w-4" />
-              画像を変更
-            </Button>
+            <div className="absolute top-4 right-4 flex space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white text-gray-700 border border-gray-300"
+                onClick={() => window.open(imageUrl, '_blank')}
+              >
+                新しいタブで開く
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white text-gray-700 border border-gray-300"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <FileUp className="mr-2 h-4 w-4" />
+                画像を変更
+              </Button>
+            </div>
           </div>
         </div>
       )}

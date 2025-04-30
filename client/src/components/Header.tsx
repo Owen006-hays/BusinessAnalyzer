@@ -41,17 +41,40 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
       return;
     }
     
-    // PDFファイル処理
-    if (file.type === "application/pdf") {
-      console.log("ヘッダーからPDFファイルを処理:", file.name, file.size);
+    // ファイルの拡張子と種類を取得
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    console.log("ファイル情報:", file.name, fileExt, file.type, file.size);
+    
+    // 拡張子に基づく処理（MIMEタイプが不正確な場合に備えて）
+    if (fileExt === 'pdf') {
+      console.log("拡張子からPDFファイルを処理:", file.name);
       onPdfUpload(file);
       return;
     }
     
-    // 画像ファイル処理（JPEG、PNG、GIF）
-    const validImageTypes = ["image/jpeg", "image/png", "image/gif"];
-    if (validImageTypes.includes(file.type) && onImageDisplay) {
-      console.log("ヘッダーから画像ファイルを処理:", file.name, file.size, file.type);
+    if (fileExt && ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'tiff'].includes(fileExt) && onImageDisplay) {
+      console.log("拡張子から画像ファイルを処理:", file.name);
+      onImageDisplay(file);
+      return;
+    }
+    
+    // MIMEタイプに基づく処理（バックアップとして）
+    if (file.type === "application/pdf") {
+      console.log("MIMEタイプからPDFファイルを処理:", file.name);
+      onPdfUpload(file);
+      return;
+    }
+    
+    // 画像ファイル処理
+    if (file.type.startsWith("image/") && onImageDisplay) {
+      console.log("MIMEタイプから画像ファイルを処理:", file.name, file.type);
+      onImageDisplay(file);
+      return;
+    }
+    
+    // 知られていないがサイズが妥当なファイルの場合、画像として処理を試みる
+    if (fileExt && onImageDisplay) {
+      console.log("不明な形式だが、画像として処理を試みる:", file.name);
       onImageDisplay(file);
       return;
     }
@@ -59,7 +82,7 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
     // サポートされていないファイル形式
     toast({
       title: "サポートされていないファイル形式",
-      description: `PDFファイルまたは画像ファイル(JPEG, PNG, GIF)をアップロードしてください。選択されたファイル形式: ${file.type || "不明な形式"}`,
+      description: `PDFファイルまたは画像ファイル(JPEG, PNG, GIF)をアップロードしてください。選択されたファイル形式: ${file.type || "不明な形式"} (拡張子: ${fileExt || "不明"})`,
       variant: "destructive",
     });
   };
@@ -122,7 +145,7 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
               <span className="inline md:hidden">ファイル</span>
               <input
                 type="file"
-                accept="application/pdf,image/jpeg,image/png,image/gif"
+                accept="application/pdf,image/*"
                 className="hidden"
                 onChange={handleFileUpload}
               />
