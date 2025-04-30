@@ -118,7 +118,7 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
           >
             <label>
               <Upload className="h-4 w-4 mr-1" />
-              <span className="hidden md:inline">ファイルをアップロード</span>
+              <span className="hidden md:inline">ファイルを選択</span>
               <span className="inline md:hidden">ファイル</span>
               <input
                 type="file"

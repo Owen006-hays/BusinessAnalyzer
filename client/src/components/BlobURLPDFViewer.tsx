@@ -26,6 +26,9 @@ const BlobURLPDFViewer: React.FC = () => {
   const [showCopyButton, setShowCopyButton] = useState(false);
   const [showZoneSelector, setShowZoneSelector] = useState(false);
   const [copyPosition, setCopyPosition] = useState({ x: 0, y: 0 });
+  const [isEncrypted, setIsEncrypted] = useState(false);
+  const [pdfPassword, setPdfPassword] = useState("");
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
   
@@ -280,9 +283,9 @@ const BlobURLPDFViewer: React.FC = () => {
               <polyline points="10 9 9 9 8 9"></polyline>
             </svg>
           </div>
-          <h2 className="text-lg font-medium text-gray-900 mb-3">PDFまたは画像をアップロード</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-3">PDFをアップロードして分析を始めましょう</h2>
           <p className="text-center text-secondary-dark mb-6 max-w-sm px-4">
-            PDFや画像ファイルをアップロードして、テキストを抽出したりビジネス分析に利用できます。
+            PDFファイルをアップロードして、テキストを抽出し、ビジネス分析に活用しましょう。
           </p>
           <Button
             variant="default"
@@ -291,7 +294,7 @@ const BlobURLPDFViewer: React.FC = () => {
             onClick={() => fileInputRef.current?.click()}
           >
             <FileUp className="mr-2 h-5 w-5" />
-            ファイルをアップロード
+            ファイルを選択
           </Button>
           <input
             ref={fileInputRef}
