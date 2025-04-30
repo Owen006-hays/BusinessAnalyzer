@@ -3,6 +3,8 @@ import { useAnalysisContext } from "@/context/AnalysisContext";
 import { Button } from "@/components/ui/button";
 import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Copy, ListFilter } from "lucide-react";
 import ZoneSelector from "@/components/ZoneSelector";
+import PasswordPromptDialog from "@/components/PasswordPromptDialog";
+import * as pdfjsLib from "pdfjs-dist";
 
 /**
  * シンプルなPDFビューワーコンポーネント
@@ -32,6 +34,81 @@ const BlobURLPDFViewer: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
   
+  // PDFのワーカーを初期化
+  useEffect(() => {
+    // PDF.jsのワーカーの場所を設定
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.js`;
+  }, []);
+
+  // PDFが暗号化されているかチェックする関数
+  const checkIfPdfIsEncrypted = async (file: File): Promise<boolean> => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({
+        data: arrayBuffer,
+        password: '',
+      });
+
+      try {
+        await loadingTask.promise;
+        // パスワードなしで開けた場合は暗号化されていないか、空のパスワードで保護されている
+        return false;
+      } catch (error: any) {
+        console.log("PDFのロード中にエラーが発生しました:", error);
+        
+        // PDF.jsのエラーコードでパスワード保護かどうかを判断
+        if (error.name === 'PasswordException') {
+          return true;
+        }
+        throw error;
+      }
+    } catch (error) {
+      console.error("PDFの暗号化チェック中にエラーが発生しました:", error);
+      throw error;
+    }
+  };
+
+  // パスワード付きPDFを開く関数
+  const openEncryptedPdf = async (password: string) => {
+    if (!pdfFile) return;
+
+    try {
+      const arrayBuffer = await pdfFile.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({
+        data: arrayBuffer,
+        password: password,
+      });
+
+      try {
+        await loadingTask.promise;
+        
+        // パスワードが正しい場合は通常通りPDFを表示
+        const url = URL.createObjectURL(pdfFile);
+        setPdfURL(url);
+        setShowPasswordPrompt(false);
+        setErrorMessage(null);
+        
+        // 成功したパスワードを保存
+        setPdfPassword(password);
+      } catch (error: any) {
+        console.error("PDFのロード中にエラーが発生しました:", error);
+        
+        if (error.name === 'PasswordException') {
+          if (error.code === 2) {
+            // 2: パスワードが間違っている
+            return "パスワードが正しくありません。もう一度お試しください。";
+          }
+        }
+        return "PDFファイルを開けませんでした。別のパスワードを試してください。";
+      }
+    } catch (error) {
+      console.error("暗号化PDFの処理中にエラーが発生しました:", error);
+      return "PDFファイルの処理中にエラーが発生しました。";
+    }
+    
+    return null; // エラーなし
+  };
+
   // PDFのURL生成
   useEffect(() => {
     if (pdfFile) {
@@ -40,16 +117,32 @@ const BlobURLPDFViewer: React.FC = () => {
         if (pdfURL) URL.revokeObjectURL(pdfURL);
         if (imageUrl) URL.revokeObjectURL(imageUrl);
         
-        // PDFのBlobURLを生成
-        const url = URL.createObjectURL(pdfFile);
-        setPdfURL(url);
-        setImageUrl(null);
-        setErrorMessage(null);
-        console.log("PDFのURLを生成しました:", url);
+        // PDFが暗号化されているかチェック
+        checkIfPdfIsEncrypted(pdfFile)
+          .then(isEncrypted => {
+            if (isEncrypted) {
+              console.log("PDFはパスワード保護されています");
+              setIsEncrypted(true);
+              setShowPasswordPrompt(true);
+              // この段階ではURLを生成しない
+            } else {
+              // 暗号化されていない場合は通常通りURLを生成
+              const url = URL.createObjectURL(pdfFile);
+              setPdfURL(url);
+              setImageUrl(null);
+              setErrorMessage(null);
+              setIsEncrypted(false);
+              console.log("PDFのURLを生成しました:", url);
+            }
+          })
+          .catch(error => {
+            console.error("PDFの暗号化チェック中にエラーが発生しました:", error);
+            setErrorMessage("PDFファイルの処理中にエラーが発生しました。別のファイルをお試しください。");
+          });
         
         // コンポーネントのアンマウント時にURLをクリーンアップ
         return () => {
-          URL.revokeObjectURL(url);
+          if (pdfURL) URL.revokeObjectURL(pdfURL);
         };
       } catch (error) {
         console.error("PDFのURL生成中にエラーが発生しました:", error);
@@ -216,8 +309,35 @@ const BlobURLPDFViewer: React.FC = () => {
     setSelectedText(null);
   };
 
+  // パスワード入力のハンドラー
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  
+  const handlePasswordSubmit = async (password: string) => {
+    const error = await openEncryptedPdf(password);
+    if (error) {
+      setPasswordError(error);
+    } else {
+      setPasswordError(null);
+    }
+  };
+
+  const handlePasswordCancel = () => {
+    // パスワード入力をキャンセルした場合、PDFを解放してnullに戻す
+    setPdfFile(null);
+    setShowPasswordPrompt(false);
+    setIsEncrypted(false);
+  };
+
   return (
     <section className="w-full h-full bg-white overflow-hidden flex flex-col" ref={viewerRef}>
+      {/* パスワード入力ダイアログ */}
+      <PasswordPromptDialog 
+        isOpen={showPasswordPrompt}
+        onSubmit={handlePasswordSubmit}
+        onCancel={handlePasswordCancel}
+        error={passwordError}
+      />
+      
       {/* コピーボタン - テキスト選択時のみ表示 */}
       {showCopyButton && selectedText && (
         <div
