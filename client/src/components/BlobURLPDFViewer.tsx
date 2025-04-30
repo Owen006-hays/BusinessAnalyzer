@@ -4,13 +4,8 @@ import { Button } from "@/components/ui/button";
 import { FileUp, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Copy, ListFilter } from "lucide-react";
 import ZoneSelector from "@/components/ZoneSelector";
 import PasswordPromptDialog from "@/components/PasswordPromptDialog";
-import * as pdfjsLib from "pdfjs-dist";
 
-// PDF.jsの設定
-if (typeof window !== 'undefined') {
-  // フェイクワーカーモードを使用（スレッド処理なし）
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-}
+// PDF.jsのインポートを削除 - 標準のブラウザ機能を使用
 
 /**
  * シンプルなPDFビューワーコンポーネント
@@ -41,116 +36,26 @@ const BlobURLPDFViewer: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
   
-  // PDFが暗号化されているかチェックする関数
-  const checkIfPdfIsEncrypted = async (file: File): Promise<boolean> => {
-    try {
-      // PDFファイルの一部だけを読み込んでパスワード保護かチェック
-      // （最初の数KBだけ読み込むことでパフォーマンス向上）
-      const chunk = await file.slice(0, 5000).arrayBuffer();
-      
-      try {
-        // フェイクワーカーモードで実行
-        const loadingTask = pdfjsLib.getDocument({
-          data: chunk,
-          password: '',
-          disableAutoFetch: true,
-          disableStream: true,
-          disableRange: true
-        });
-
-        try {
-          // パスワードが必要かどうかのチェックのみ実行
-          await loadingTask.promise;
-          // パスワードなしで開けた場合は暗号化されていないか、空のパスワードで保護されている
-          return false;
-        } catch (error: any) {
-          console.log("PDFの確認中:", error);
-          
-          // PDF.jsのエラーコードでパスワード保護かどうかを判断
-          if (error.name === 'PasswordException') {
-            return true;
-          }
-          
-          // その他のエラーは再スロー
-          if (error.name === 'InvalidPDFException') {
-            throw new Error('無効なPDFファイルです。');
-          }
-          
-          throw error;
-        }
-      } catch (error: any) {
-        if (error.message === '無効なPDFファイルです。') {
-          throw error;
-        }
-        console.error("PDFの解析中にエラーが発生しました:", error);
-        throw new Error('PDFの読み込み中にエラーが発生しました。');
-      }
-    } catch (error) {
-      console.error("PDFファイルの読み込み中にエラーが発生しました:", error);
-      throw error;
-    }
-  };
-
-  // パスワード付きPDFを開く関数
+  // パスワード付きPDFを開く関数 - ブラウザ標準のPDFリーダー任せ
   const openEncryptedPdf = async (password: string) => {
     if (!pdfFile) return;
 
     try {
-      // バイナリデータとしてファイルを読み込む
-      // パスワード付きPDFは解読してからBlobとして表示
-      const arrayBuffer = await pdfFile.arrayBuffer();
+      // パスワード付きPDFも、ブラウザ標準のPDF表示機能に任せる
+      // パスワードが必要な場合はブラウザが自動的にパスワード入力ダイアログを表示する
+      const url = URL.createObjectURL(pdfFile);
+      setPdfURL(url);
+      setShowPasswordPrompt(false);
+      setErrorMessage(null);
       
-      // PDFをパスワードつきでロード
-      const loadingTask = pdfjsLib.getDocument({
-        data: arrayBuffer,
-        password: password,
-        disableAutoFetch: false,
-        disableStream: false,
-        disableRange: false
-      });
-
-      try {
-        // PDFドキュメントが正常にロードできるか確認
-        const pdfDoc = await loadingTask.promise;
-        
-        // 実際にページ情報を取得してみることで完全に復号化できることを確認
-        const page = await pdfDoc.getPage(1);
-        if (!page) {
-          throw new Error("PDFの読み込みに失敗しました");
-        }
-        
-        // 検証が終わったら、パスワード付きのPDFをBlobとして表示する
-        // (クライアントサイドでの表示を優先)
-        const url = URL.createObjectURL(pdfFile);
-        setPdfURL(url);
-        setShowPasswordPrompt(false);
-        setErrorMessage(null);
-        
-        // 成功したパスワードを保存
-        setPdfPassword(password);
-      } catch (error: any) {
-        console.error("PDFの検証中にエラーが発生しました:", error);
-        
-        if (error.name === 'PasswordException') {
-          if (error.code === 2) {
-            // 2: パスワードが間違っている
-            return "パスワードが正しくありません。もう一度お試しください。";
-          } else if (error.code === 1) {
-            // 1: 復号化のためにパスワードが必要
-            return "このPDFはパスワードで保護されています。正しいパスワードを入力してください。";
-          }
-        } else if (error.name === 'InvalidPDFException') {
-          return "無効なPDFファイルです。別のファイルをお試しください。";
-        }
-        
-        return "PDFファイルを開けませんでした。別のパスワードを試してください。";
-      }
+      // 入力されたパスワードを記録
+      setPdfPassword(password);
+      
+      return null; // エラーなし
     } catch (error) {
-      console.error("暗号化PDFの処理中にエラーが発生しました:", error);
+      console.error("PDFファイルのロード中にエラーが発生しました:", error);
       return "PDFファイルの処理中にエラーが発生しました。";
     }
-    
-    return null; // エラーなし
   };
 
   // PDFのURL生成
@@ -161,34 +66,19 @@ const BlobURLPDFViewer: React.FC = () => {
         if (pdfURL) URL.revokeObjectURL(pdfURL);
         if (imageUrl) URL.revokeObjectURL(imageUrl);
         
-        // PDFが暗号化されているかチェック
-        checkIfPdfIsEncrypted(pdfFile)
-          .then(isEncrypted => {
-            if (isEncrypted) {
-              console.log("PDFはパスワード保護されています");
-              setIsEncrypted(true);
-              setShowPasswordPrompt(true);
-              // この段階ではURLを生成しない
-            } else {
-              // 暗号化されていない場合は通常通りURLを生成
-              const url = URL.createObjectURL(pdfFile);
-              setPdfURL(url);
-              setImageUrl(null);
-              setErrorMessage(null);
-              setIsEncrypted(false);
-              console.log("PDFのURLを生成しました:", url);
-            }
-          })
-          .catch(error => {
-            console.error("PDFの暗号化チェック中にエラーが発生しました:", error);
-            setErrorMessage("PDFファイルの処理中にエラーが発生しました。別のファイルをお試しください。");
-          });
+        // まずURLを生成（ブラウザ標準のPDFリーダーに任せる）
+        const url = URL.createObjectURL(pdfFile);
+        setPdfURL(url);
+        setImageUrl(null);
+        setErrorMessage(null);
+        setIsEncrypted(false);
+        console.log("PDFのURLを生成しました:", url);
         
         // コンポーネントのアンマウント時にURLをクリーンアップ
         return () => {
           if (pdfURL) URL.revokeObjectURL(pdfURL);
         };
-      } catch (error) {
+      } catch (error: any) {
         console.error("PDFのURL生成中にエラーが発生しました:", error);
         setErrorMessage("PDFファイルの処理中にエラーが発生しました。別のファイルをお試しください。");
       }
