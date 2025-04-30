@@ -127,91 +127,143 @@ const BlobURLPDFViewer: React.FC = () => {
     }
   }, [pdfFile]);
   
-  // 画像のURL生成
+  // 画像のURL生成 - 全く新しいアプローチ
   useEffect(() => {
-    if (imageFile) {
+    if (!imageFile) {
+      setImageUrl(null);
+      return;
+    }
+    
+    // クリーンアップ用の関数を保持
+    let cleanup: null | (() => void) = null;
+    
+    // 新しい非同期処理関数
+    const processImageFile = async () => {
       try {
+        console.log("画像ファイル処理（新方式）を開始:", imageFile.name, imageFile.type, imageFile.size);
+        
         // 以前のURLをクリーンアップ
-        if (pdfURL) URL.revokeObjectURL(pdfURL);
-        if (imageUrl) URL.revokeObjectURL(imageUrl);
+        if (pdfURL) {
+          URL.revokeObjectURL(pdfURL);
+          setPdfURL(null);
+        }
+        if (imageUrl) {
+          URL.revokeObjectURL(imageUrl);
+          setImageUrl(null);
+        }
         
-        console.log("画像ファイル処理を開始:", imageFile.name, imageFile.type, imageFile.size);
-        
-        // ファイルが実際に画像かどうかを確認せず、単純にBlobURLを生成する
-        // text()の使用を避け、ファイルの中身を読まない
-        const url = URL.createObjectURL(imageFile);
-        console.log("生成したURL:", url);
-        
-        // ステート更新
-        setImageUrl(url);
-        setPdfURL(null);
+        // エラー表示をクリア
         setErrorMessage(null);
+
+        // Blob URLを直接生成
+        const newUrl = URL.createObjectURL(imageFile);
+        console.log("画像のBlobURLを生成:", newUrl);
         
-        // コンポーネントのアンマウント時にURLをクリーンアップ
-        return () => {
-          URL.revokeObjectURL(url);
+        // 状態を更新
+        setImageUrl(newUrl);
+        
+        // クリーンアップ関数を設定
+        cleanup = () => {
+          console.log("画像URLをクリーンアップ:", newUrl);
+          URL.revokeObjectURL(newUrl);
         };
       } catch (error) {
-        console.error("画像のURL生成中にエラーが発生しました:", error);
-        setErrorMessage("画像ファイルの処理中にエラーが発生しました。別のファイルをお試しください。");
+        console.error("画像処理中のエラー:", error);
+        setErrorMessage("画像の処理中にエラーが発生しました。別のファイルをお試しください。");
       }
-    } else {
-      setImageUrl(null);
-    }
-  }, [imageFile]);
+    };
+    
+    // 処理を開始
+    processImageFile();
+    
+    // クリーンアップ関数を返す
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [imageFile, pdfURL, imageUrl]);
 
-  // ファイルアップロードハンドラー
+  // ファイルアップロードハンドラー - 完全に異なるアプローチでここもリファクタリング
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setErrorMessage(null);
-    setIsEncrypted(false);
-    setShowPasswordPrompt(false);
-    
-    // MIMEタイプだけでなく、ファイル拡張子も確認
-    const fileExt = file.name.split('.').pop()?.toLowerCase();
-    
     try {
-      // PDFファイルの場合
-      if (file.type === 'application/pdf' || fileExt === 'pdf') {
-        // PDFファイルはバイナリデータとして検証
-        const validatePdf = async () => {
-          try {
-            // ファイルの最初の数バイトを読み取り、PDFのマジックナンバーをチェック
-            const chunk = await file.slice(0, 5).arrayBuffer();
-            const bytes = new Uint8Array(chunk);
-            
-            // PDFのマジックナンバー '%PDF' = 0x25, 0x50, 0x44, 0x46
-            if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
-              // 正当なPDFファイル
-              setPdfFile(file);
-              setImageFile(null);
-            } else {
-              // PDFのマジックナンバーが見つからない場合
-              setErrorMessage("PDFファイルの形式が不正です。標準のPDFファイルをアップロードしてください。");
-            }
-          } catch (error) {
-            console.error("PDFファイルの検証中にエラーが発生しました:", error);
-            setErrorMessage("PDFファイルの検証中にエラーが発生しました。別のファイルをお試しください。");
+      const file = e.target.files?.[0];
+      if (!file) return;
+      
+      // 状態をリセット
+      setErrorMessage(null);
+      setIsEncrypted(false);
+      setShowPasswordPrompt(false);
+      
+      console.log("ファイルアップロード処理:", file.name, file.type, file.size);
+      
+      // ファイルの拡張子を取得
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      console.log("ファイル拡張子:", fileExt);
+      
+      // PDF判定の関数（非同期）
+      const checkIfPdf = async (file: File): Promise<boolean> => {
+        try {
+          // バイナリデータとして最初の5バイトを読み込む
+          const buffer = await file.slice(0, 5).arrayBuffer();
+          const bytes = new Uint8Array(buffer);
+          
+          // PDFのマジックナンバーを確認 ('%PDF')
+          return bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
+        } catch (error) {
+          console.error("PDFファイル検証エラー:", error);
+          return false;
+        }
+      };
+      
+      // 拡張子がPDFの場合、または明示的にPDFタイプが指定されている場合
+      if (fileExt === 'pdf' || file.type === 'application/pdf') {
+        checkIfPdf(file).then(isPdf => {
+          if (isPdf) {
+            console.log("PDFファイルを検出しました");
+            // PDFファイルとして処理
+            setPdfFile(file);
+            setImageFile(null);
+          } else {
+            console.log("PDFではないファイル");
+            setErrorMessage("有効なPDFファイルではありません。標準のPDFファイルをアップロードしてください。");
           }
-        };
+        });
+      }
+      // 画像ファイルの判定
+      else if (
+        file.type.startsWith('image/') || 
+        ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'tiff'].includes(fileExt || '')
+      ) {
+        console.log("画像ファイルとして処理します");
         
-        validatePdf();
-      } 
-      // 画像ファイルの場合
-      else if (file.type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt || '')) {
-        // 画像ファイルは直接受け入れる（MIMEタイプや拡張子で十分な検証）
-        setImageFile(file);
+        // 画像ファイルとして処理
+        // 直接URLを生成せず、ファイルオブジェクトとして保存
+        setImageFile(file); 
         setPdfFile(null);
-      } 
-      // その他のファイル
+      }
+      // 拡張子やMIMEタイプから判定できない場合、最後の手段として、PDFかどうか確認
       else {
-        setErrorMessage(`サポートされていないファイル形式です (${file.type || '不明'} / ${fileExt || '不明'}). PDFまたは画像ファイル (JPEG, PNG, GIF) をアップロードしてください。`);
+        console.log("不明なファイル形式、PDFかどうか確認します");
+        
+        checkIfPdf(file).then(isPdf => {
+          if (isPdf) {
+            console.log("不明な拡張子でしたが、PDFファイルを検出しました");
+            // PDFファイルとして処理
+            setPdfFile(file);
+            setImageFile(null);
+          } else {
+            console.log("不明なファイル形式を画像として処理を試みます");
+            // 最後の手段として画像として処理を試みる
+            setImageFile(file);
+            setPdfFile(null);
+          }
+        });
       }
     } catch (error) {
-      console.error("ファイル処理中にエラーが発生しました:", error);
+      console.error("ファイル処理中の予期せぬエラー:", error);
       setErrorMessage("ファイルの処理中にエラーが発生しました。別のファイルをお試しください。");
+    } finally {
+      // input要素をリセットして同じファイルを再選択できるようにする
+      e.target.value = '';
     }
   };
   
@@ -496,41 +548,40 @@ const BlobURLPDFViewer: React.FC = () => {
         </div>
       )}
       
-      {/* Image viewer */}
+      {/* Image viewer - 完全に簡素化された実装 */}
       {imageUrl && (
-        <div className="flex-grow h-full overflow-auto p-4 flex flex-col items-center justify-center">
-          <div className="relative max-w-full">
-            <img 
+        <div className="flex-grow h-full relative">
+          {/* imageUrlが直接使えるフォールバックの対策 */}
+          <object 
+            data={imageUrl} 
+            type="image/*" 
+            className="w-full h-full object-contain p-4"
+          >
+            <iframe 
               src={imageUrl} 
-              alt="アップロードされた画像" 
-              className="max-w-full max-h-[calc(100vh-8rem)] rounded shadow-lg object-contain"
-              // 画像からテキスト選択できるようにする
-              style={{ userSelect: 'text' }}
-              onError={(e) => {
-                console.error("画像の読み込みエラー", e);
-                setErrorMessage("画像の読み込みに失敗しました。別の画像ファイルをお試しください。");
-                setImageUrl(null);
-              }}
-            />
-            <div className="absolute top-4 right-4 flex space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-white text-gray-700 border border-gray-300"
-                onClick={() => window.open(imageUrl, '_blank')}
-              >
-                新しいタブで開く
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-white text-gray-700 border border-gray-300"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <FileUp className="mr-2 h-4 w-4" />
-                画像を変更
-              </Button>
-            </div>
+              className="w-full h-full border-0"
+              title="画像ビューア"
+            ></iframe>
+          </object>
+          
+          <div className="absolute top-4 right-4 flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white text-gray-700 border border-gray-300"
+              onClick={() => window.open(imageUrl, '_blank')}
+            >
+              新しいタブで開く
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white text-gray-700 border border-gray-300"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <FileUp className="mr-2 h-4 w-4" />
+              画像を変更
+            </Button>
           </div>
         </div>
       )}
