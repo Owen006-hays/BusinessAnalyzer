@@ -1,10 +1,19 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertTextBoxSchema, insertAnalysisSchema, insertSheetSchema } from "@shared/schema";
 import { z } from "zod";
+import fileUploadRouter from "./file-upload";
+import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ファイルアップロードのルートを登録
+  app.use('/api/files', fileUploadRouter);
+  
+  // 静的ファイル配信用の設定
+  app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
+  
   // API Routes for our application
   
   // Sheet routes
