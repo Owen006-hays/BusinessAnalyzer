@@ -6,8 +6,11 @@ import ZoneSelector from "@/components/ZoneSelector";
 import PasswordPromptDialog from "@/components/PasswordPromptDialog";
 import * as pdfjsLib from "pdfjs-dist";
 
-// PDF.jsのワーカー設定をディセーブル（フェイクワーカーを使用）
-pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+// PDF.jsの設定
+if (typeof window !== 'undefined') {
+  // フェイクワーカーモードを使用（スレッド処理なし）
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+}
 
 /**
  * シンプルなPDFビューワーコンポーネント
@@ -41,27 +44,49 @@ const BlobURLPDFViewer: React.FC = () => {
   // PDFが暗号化されているかチェックする関数
   const checkIfPdfIsEncrypted = async (file: File): Promise<boolean> => {
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const loadingTask = pdfjsLib.getDocument({
-        data: arrayBuffer,
-        password: '',
-      });
-
+      // PDFファイルの一部だけを読み込んでパスワード保護かチェック
+      // （最初の数KBだけ読み込むことでパフォーマンス向上）
+      const chunk = await file.slice(0, 5000).arrayBuffer();
+      
       try {
-        await loadingTask.promise;
-        // パスワードなしで開けた場合は暗号化されていないか、空のパスワードで保護されている
-        return false;
-      } catch (error: any) {
-        console.log("PDFのロード中にエラーが発生しました:", error);
-        
-        // PDF.jsのエラーコードでパスワード保護かどうかを判断
-        if (error.name === 'PasswordException') {
-          return true;
+        // フェイクワーカーモードで実行
+        const loadingTask = pdfjsLib.getDocument({
+          data: chunk,
+          password: '',
+          disableAutoFetch: true,
+          disableStream: true,
+          disableRange: true
+        });
+
+        try {
+          // パスワードが必要かどうかのチェックのみ実行
+          await loadingTask.promise;
+          // パスワードなしで開けた場合は暗号化されていないか、空のパスワードで保護されている
+          return false;
+        } catch (error: any) {
+          console.log("PDFの確認中:", error);
+          
+          // PDF.jsのエラーコードでパスワード保護かどうかを判断
+          if (error.name === 'PasswordException') {
+            return true;
+          }
+          
+          // その他のエラーは再スロー
+          if (error.name === 'InvalidPDFException') {
+            throw new Error('無効なPDFファイルです。');
+          }
+          
+          throw error;
         }
-        throw error;
+      } catch (error: any) {
+        if (error.message === '無効なPDFファイルです。') {
+          throw error;
+        }
+        console.error("PDFの解析中にエラーが発生しました:", error);
+        throw new Error('PDFの読み込み中にエラーが発生しました。');
       }
     } catch (error) {
-      console.error("PDFの暗号化チェック中にエラーが発生しました:", error);
+      console.error("PDFファイルの読み込み中にエラーが発生しました:", error);
       throw error;
     }
   };
@@ -71,16 +96,31 @@ const BlobURLPDFViewer: React.FC = () => {
     if (!pdfFile) return;
 
     try {
+      // バイナリデータとしてファイルを読み込む
+      // パスワード付きPDFは解読してからBlobとして表示
       const arrayBuffer = await pdfFile.arrayBuffer();
+      
+      // PDFをパスワードつきでロード
       const loadingTask = pdfjsLib.getDocument({
         data: arrayBuffer,
         password: password,
+        disableAutoFetch: false,
+        disableStream: false,
+        disableRange: false
       });
 
       try {
-        await loadingTask.promise;
+        // PDFドキュメントが正常にロードできるか確認
+        const pdfDoc = await loadingTask.promise;
         
-        // パスワードが正しい場合は通常通りPDFを表示
+        // 実際にページ情報を取得してみることで完全に復号化できることを確認
+        const page = await pdfDoc.getPage(1);
+        if (!page) {
+          throw new Error("PDFの読み込みに失敗しました");
+        }
+        
+        // 検証が終わったら、パスワード付きのPDFをBlobとして表示する
+        // (クライアントサイドでの表示を優先)
         const url = URL.createObjectURL(pdfFile);
         setPdfURL(url);
         setShowPasswordPrompt(false);
@@ -89,14 +129,20 @@ const BlobURLPDFViewer: React.FC = () => {
         // 成功したパスワードを保存
         setPdfPassword(password);
       } catch (error: any) {
-        console.error("PDFのロード中にエラーが発生しました:", error);
+        console.error("PDFの検証中にエラーが発生しました:", error);
         
         if (error.name === 'PasswordException') {
           if (error.code === 2) {
             // 2: パスワードが間違っている
             return "パスワードが正しくありません。もう一度お試しください。";
+          } else if (error.code === 1) {
+            // 1: 復号化のためにパスワードが必要
+            return "このPDFはパスワードで保護されています。正しいパスワードを入力してください。";
           }
+        } else if (error.name === 'InvalidPDFException') {
+          return "無効なPDFファイルです。別のファイルをお試しください。";
         }
+        
         return "PDFファイルを開けませんでした。別のパスワードを試してください。";
       }
     } catch (error) {
@@ -191,16 +237,48 @@ const BlobURLPDFViewer: React.FC = () => {
     if (!file) return;
     
     setErrorMessage(null);
+    setIsEncrypted(false);
+    setShowPasswordPrompt(false);
     
-    // ファイルタイプの確認
-    if (file.type === 'application/pdf') {
-      setPdfFile(file);
-      setImageFile(null);
-    } else if (file.type.startsWith('image/')) {
-      setImageFile(file);
-      setPdfFile(null);
-    } else {
-      setErrorMessage(`サポートされていないファイル形式です (${file.type || '不明'}). PDFまたは画像ファイル (JPEG, PNG, GIF) をアップロードしてください。`);
+    // MIMEタイプだけでなく、ファイル拡張子も確認
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    
+    try {
+      // PDFファイルの場合
+      if (file.type === 'application/pdf' || fileExt === 'pdf') {
+        // 実際のPDFファイルかを検証
+        const validatePdf = async () => {
+          try {
+            // ファイルの最初の数バイトを読み取り、PDFのマジックナンバーをチェック
+            const header = await file.slice(0, 5).text();
+            if (header.startsWith('%PDF')) {
+              // 正当なPDFファイル
+              setPdfFile(file);
+              setImageFile(null);
+            } else {
+              // PDFのマジックナンバーが見つからない場合
+              setErrorMessage("PDFファイルの形式が不正です。標準のPDFファイルをアップロードしてください。");
+            }
+          } catch (error) {
+            console.error("PDFファイルの検証中にエラーが発生しました:", error);
+            setErrorMessage("PDFファイルの検証中にエラーが発生しました。別のファイルをお試しください。");
+          }
+        };
+        
+        validatePdf();
+      } 
+      // 画像ファイルの場合
+      else if (file.type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt || '')) {
+        setImageFile(file);
+        setPdfFile(null);
+      } 
+      // その他のファイル
+      else {
+        setErrorMessage(`サポートされていないファイル形式です (${file.type || '不明'} / ${fileExt || '不明'}). PDFまたは画像ファイル (JPEG, PNG, GIF) をアップロードしてください。`);
+      }
+    } catch (error) {
+      console.error("ファイル処理中にエラーが発生しました:", error);
+      setErrorMessage("ファイルの処理中にエラーが発生しました。別のファイルをお試しください。");
     }
   };
   
