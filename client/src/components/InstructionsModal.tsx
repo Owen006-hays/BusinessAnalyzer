@@ -26,12 +26,11 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ onClose }) => {
         <div className="mb-6">
           <h3 className="font-medium text-gray-900 mb-2">基本操作</h3>
           <ol className="list-decimal pl-5 space-y-2 text-gray-700">
-            <li>右側のビューアにPDFファイルをアップロードします。</li>
-            <li>PDFからテキストを選択し、「キャンバスに追加」ボタンをクリックして左側の分析エリアにテキストを追加します。</li>
-            <li>「エリアを選択」ボタンでテンプレートの特定のゾーンにテキストを追加できます。</li>
+            <li>右側のPDFビューアにPDFファイルをアップロードします。</li>
+            <li>PDFからテキストを選択し、左側の分析エリアにドラッグ&ドロップします。</li>
             <li>テキストボックスは自由に移動、サイズ変更、編集ができます。</li>
-            <li>テキストボックスをダブルクリックして内容を編集できます。</li>
-            <li>不要なテキストボックスは右上メニューから削除、または選択して削除キーを押すことで削除できます。</li>
+            <li>ダブルクリックでテキストを編集できます。</li>
+            <li>不要なテキストボックスは削除キーで削除できます。</li>
           </ol>
         </div>
         
