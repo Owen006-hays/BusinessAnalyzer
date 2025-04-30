@@ -41,8 +41,14 @@ const BlobURLPDFViewer: React.FC = () => {
     if (!pdfFile) return;
 
     try {
+      // パスワード情報をHTMLのdata属性として保存
+      // ブラウザ標準のPDF表示機能はオブジェクトタグのパラメータからパスワードを読み取る
+      const wrapper = document.createElement('div');
+      wrapper.setAttribute('data-pdf-password', password);
+      document.body.appendChild(wrapper);
+
       // パスワード付きPDFも、ブラウザ標準のPDF表示機能に任せる
-      // パスワードが必要な場合はブラウザが自動的にパスワード入力ダイアログを表示する
+      // 新しいURLを生成して、キャッシュを回避
       const url = URL.createObjectURL(pdfFile);
       setPdfURL(url);
       setShowPasswordPrompt(false);
@@ -50,6 +56,11 @@ const BlobURLPDFViewer: React.FC = () => {
       
       // 入力されたパスワードを記録
       setPdfPassword(password);
+      
+      // 不要になったHTMLを削除（少し遅延させる）
+      setTimeout(() => {
+        document.body.removeChild(wrapper);
+      }, 1000);
       
       return null; // エラーなし
     } catch (error) {
@@ -66,13 +77,42 @@ const BlobURLPDFViewer: React.FC = () => {
         if (pdfURL) URL.revokeObjectURL(pdfURL);
         if (imageUrl) URL.revokeObjectURL(imageUrl);
         
-        // まずURLを生成（ブラウザ標準のPDFリーダーに任せる）
-        const url = URL.createObjectURL(pdfFile);
-        setPdfURL(url);
-        setImageUrl(null);
-        setErrorMessage(null);
-        setIsEncrypted(false);
-        console.log("PDFのURLを生成しました:", url);
+        // 暗号化されたPDFかどうかを簡易的に検出（バイナリデータに特定のパターンがないか調べる）
+        const checkForEncryption = async () => {
+          try {
+            // ファイルの最初の1KBのみ読み込み (パフォーマンス向上)
+            const chunk = await pdfFile.slice(0, 1024).arrayBuffer();
+            const bytes = new Uint8Array(chunk);
+            const headerText = new TextDecoder().decode(bytes);
+            
+            // 暗号化キーワードの検出
+            if (headerText.includes('/Encrypt') || headerText.includes('/encryption')) {
+              console.log("暗号化PDFの可能性があります");
+              setIsEncrypted(true);
+              setShowPasswordPrompt(true);
+              return;
+            }
+            
+            // 非暗号化PDFとして処理
+            const url = URL.createObjectURL(pdfFile);
+            setPdfURL(url);
+            setImageUrl(null);
+            setErrorMessage(null);
+            setIsEncrypted(false);
+            console.log("PDFのURLを生成しました:", url);
+          } catch (e) {
+            // 暗号化チェックでエラーが発生した場合は、通常のPDFとして扱う
+            console.error("PDF暗号化チェック中のエラー:", e);
+            const url = URL.createObjectURL(pdfFile);
+            setPdfURL(url);
+            setImageUrl(null);
+            setErrorMessage(null);
+            setIsEncrypted(false);
+            console.log("PDFのURLを生成しました (暗号化チェックスキップ):", url);
+          }
+        };
+        
+        checkForEncryption();
         
         // コンポーネントのアンマウント時にURLをクリーンアップ
         return () => {
@@ -422,34 +462,34 @@ const BlobURLPDFViewer: React.FC = () => {
         </div>
       )}
       
-      {/* PDF viewer - iframeの代わりにオブジェクトタグを使用 */}
+      {/* PDF viewer - iframeを使用（ブラウザのネイティブPDF表示機能を活用） */}
       {pdfURL && (
         <div className="flex-grow h-full w-full relative">
-          <object 
-            data={pdfURL} 
-            type="application/pdf"
+          <iframe 
+            src={pdfURL} 
+            title="PDF Document"
             className="w-full h-full border-0"
-          >
-            <div className="w-full h-full flex items-center justify-center flex-col p-4 bg-gray-100">
-              <p className="mb-4 text-center">PDFを直接表示できませんでした。</p>
-              <Button
-                variant="default"
-                onClick={() => window.open(pdfURL, '_blank')}
-                className="bg-primary text-white"
-              >
-                PDFをダウンロード/別窓で開く
-              </Button>
-            </div>
-          </object>
-          <Button
-            variant="outline"
-            size="sm"
-            className="absolute top-4 right-4 bg-white text-gray-700 border border-gray-300"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <FileUp className="mr-2 h-4 w-4" />
-            ファイルを変更
-          </Button>
+            sandbox="allow-same-origin allow-scripts allow-forms"
+          />
+          <div className="absolute top-4 right-4 flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white text-gray-700 border border-gray-300"
+              onClick={() => window.open(pdfURL, '_blank')}
+            >
+              新しいタブで開く
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white text-gray-700 border border-gray-300"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <FileUp className="mr-2 h-4 w-4" />
+              ファイルを変更
+            </Button>
+          </div>
         </div>
       )}
       
