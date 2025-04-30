@@ -6,6 +6,9 @@ import ZoneSelector from "@/components/ZoneSelector";
 import PasswordPromptDialog from "@/components/PasswordPromptDialog";
 import * as pdfjsLib from "pdfjs-dist";
 
+// PDF.jsのワーカー設定をディセーブル（フェイクワーカーを使用）
+pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+
 /**
  * シンプルなPDFビューワーコンポーネント
  * PDFファイルや画像ファイルをブラウザのネイティブAPIを使って表示します
@@ -31,15 +34,10 @@ const BlobURLPDFViewer: React.FC = () => {
   const [isEncrypted, setIsEncrypted] = useState(false);
   const [pdfPassword, setPdfPassword] = useState("");
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
   
-  // PDFのワーカーを初期化
-  useEffect(() => {
-    // PDF.jsのワーカーの場所を設定
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.js`;
-  }, []);
-
   // PDFが暗号化されているかチェックする関数
   const checkIfPdfIsEncrypted = async (file: File): Promise<boolean> => {
     try {
@@ -310,8 +308,6 @@ const BlobURLPDFViewer: React.FC = () => {
   };
 
   // パスワード入力のハンドラー
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  
   const handlePasswordSubmit = async (password: string) => {
     const error = await openEncryptedPdf(password);
     if (error) {
@@ -405,7 +401,7 @@ const BlobURLPDFViewer: React.FC = () => {
           </div>
           <h2 className="text-lg font-medium text-gray-900 mb-3">PDFをアップロードして分析を始めましょう</h2>
           <p className="text-center text-secondary-dark mb-6 max-w-sm px-4">
-            PDFファイルをアップロードして、テキストを抽出し、ビジネス分析に活用しましょう。
+            PDFファイルや画像をアップロードして、テキストを抽出し、分析に活用しましょう。
           </p>
           <Button
             variant="default"
