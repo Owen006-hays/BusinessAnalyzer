@@ -135,10 +135,13 @@ const BlobURLPDFViewer: React.FC = () => {
         if (pdfURL) URL.revokeObjectURL(pdfURL);
         if (imageUrl) URL.revokeObjectURL(imageUrl);
         
-        // 画像ファイルのバリデーション
-        if (!imageFile.type.startsWith('image/')) {
-          setErrorMessage("サポートされていない画像形式です。JPEG、PNG、GIFをお試しください。");
-          return;
+        // 画像ファイルの検証 - MIMEタイプと拡張子で検証するが、
+        // 形式が不明でもエラーにはせず、とにかく表示を試みる
+        const fileExt = imageFile.name.split('.').pop()?.toLowerCase();
+        const knownImageExt = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'tiff'];
+        
+        if (!imageFile.type.startsWith('image/') && !knownImageExt.includes(fileExt || '')) {
+          console.warn("画像ファイルの種類が認識できませんが、表示を試みます:", fileExt, imageFile.type);
         }
         
         // 画像のBlobURLを生成
@@ -176,12 +179,15 @@ const BlobURLPDFViewer: React.FC = () => {
     try {
       // PDFファイルの場合
       if (file.type === 'application/pdf' || fileExt === 'pdf') {
-        // 実際のPDFファイルかを検証
+        // PDFファイルはバイナリデータとして検証
         const validatePdf = async () => {
           try {
             // ファイルの最初の数バイトを読み取り、PDFのマジックナンバーをチェック
-            const header = await file.slice(0, 5).text();
-            if (header.startsWith('%PDF')) {
+            const chunk = await file.slice(0, 5).arrayBuffer();
+            const bytes = new Uint8Array(chunk);
+            
+            // PDFのマジックナンバー '%PDF' = 0x25, 0x50, 0x44, 0x46
+            if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
               // 正当なPDFファイル
               setPdfFile(file);
               setImageFile(null);
@@ -199,6 +205,7 @@ const BlobURLPDFViewer: React.FC = () => {
       } 
       // 画像ファイルの場合
       else if (file.type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt || '')) {
+        // 画像ファイルは直接受け入れる（MIMEタイプや拡張子で十分な検証）
         setImageFile(file);
         setPdfFile(null);
       } 
