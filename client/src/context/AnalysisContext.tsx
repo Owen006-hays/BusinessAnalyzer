@@ -558,25 +558,34 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
     const originalWidth = computedStyle.width;
     const originalOverflow = computedStyle.overflow;
     
+    // 現在の実際のサイズを取得（これを保持します）
+    const currentWidth = canvasRef.current.offsetWidth;
+    const currentHeight = canvasRef.current.offsetHeight;
+    
     try {
-      // スクロールとサイズの設定を変更して全体を見えるようにする
-      canvasRef.current.style.height = 'auto';
-      canvasRef.current.style.width = 'auto';
+      // テンプレート全体が表示されるように調整しつつ、現在のビューポートサイズを維持
+      canvasRef.current.style.height = `${currentHeight}px`;
+      canvasRef.current.style.width = `${currentWidth}px`;
       canvasRef.current.style.overflow = 'visible';
+      canvasRef.current.style.position = 'relative';
       
       // 少し遅延を入れて DOM の更新を確実にする
       await new Promise(resolve => setTimeout(resolve, 100));
       
       const canvas = await html2canvas(canvasRef.current, {
         backgroundColor: "white",
-        scale: 2,
-        useCORS: true, // クロスオリジン画像も対応
-        allowTaint: true, // 外部コンテンツを許可
+        scale: 2, // 高解像度で出力
+        useCORS: true,
+        allowTaint: true,
         logging: false,
-        windowWidth: document.documentElement.offsetWidth,
-        windowHeight: document.documentElement.offsetHeight,
-        width: canvasRef.current.scrollWidth,
-        height: canvasRef.current.scrollHeight,
+        // 現在表示されているキャンバスのサイズを維持
+        width: currentWidth,
+        height: currentHeight,
+        // スクロール部分も含めて全体をキャプチャ
+        ignoreElements: (element) => {
+          // 分析キャンバス以外の要素を無視
+          return !element.closest('.analysis-canvas') && !element.classList.contains('analysis-canvas');
+        }
       });
       
       // Create download link
@@ -603,41 +612,68 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
     const originalWidth = computedStyle.width;
     const originalOverflow = computedStyle.overflow;
     
+    // 現在の実際のサイズを取得（これを保持します）
+    const currentWidth = canvasRef.current.offsetWidth;
+    const currentHeight = canvasRef.current.offsetHeight;
+    
     try {
-      // スクロールとサイズの設定を変更して全体を見えるようにする
-      canvasRef.current.style.height = 'auto';
-      canvasRef.current.style.width = 'auto';
+      // テンプレート全体が表示されるように調整しつつ、現在のビューポートサイズを維持
+      canvasRef.current.style.height = `${currentHeight}px`;
+      canvasRef.current.style.width = `${currentWidth}px`;
       canvasRef.current.style.overflow = 'visible';
+      canvasRef.current.style.position = 'relative';
       
       // 少し遅延を入れて DOM の更新を確実にする
       await new Promise(resolve => setTimeout(resolve, 100));
       
       const canvas = await html2canvas(canvasRef.current, {
         backgroundColor: "white",
-        scale: 2,
+        scale: 2, // 高解像度で出力
         useCORS: true,
         allowTaint: true,
         logging: false,
-        windowWidth: document.documentElement.offsetWidth,
-        windowHeight: document.documentElement.offsetHeight,
-        width: canvasRef.current.scrollWidth,
-        height: canvasRef.current.scrollHeight,
+        // 現在表示されているキャンバスのサイズを維持
+        width: currentWidth,
+        height: currentHeight,
+        // スクロール部分も含めて全体をキャプチャ
+        ignoreElements: (element) => {
+          // 分析キャンバス以外の要素を無視
+          return !element.closest('.analysis-canvas') && !element.classList.contains('analysis-canvas');
+        }
       });
       
       const imgData = canvas.toDataURL('image/png');
       
-      // ページサイズをコンテンツに合わせて設定（自動的にフィットするようにします）
-      const pdfWidth = Math.min(297, canvas.width / 4); // mm単位、A4ランドスケープの最大幅
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width; // アスペクト比を維持
+      // A4サイズに最適化
+      const pageWidth = 210; // A4サイズの幅（mm）
+      const pageHeight = 297; // A4サイズの高さ（mm）
+      
+      // アスペクト比に基づいて適切な向きを選択
+      const isLandscape = currentWidth / currentHeight > pageWidth / pageHeight;
+      
+      // PDFのサイズ計算
+      let pdfWidth, pdfHeight;
+      if (isLandscape) {
+        pdfWidth = pageHeight; // ランドスケープではA4の長辺を幅として使用
+        pdfHeight = pageWidth; 
+      } else {
+        pdfWidth = pageWidth; // ポートレートではA4の短辺を幅として使用
+        pdfHeight = pageHeight;
+      }
       
       const pdf = new jsPDF({
-        orientation: pdfWidth > pdfHeight ? "landscape" : "portrait",
+        orientation: isLandscape ? "landscape" : "portrait",
         unit: "mm",
-        format: [pdfWidth, pdfHeight], // カスタムサイズ
+        format: "a4", // 標準のA4サイズを使用
       });
       
-      // Add the image to the PDF (全体表示)
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // 画像をページに合わせてスケーリング（余白なしでフィット）
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfImgWidth = pdfWidth;
+      const pdfImgHeight = (imgProps.height * pdfImgWidth) / imgProps.width;
+      
+      // Add the image to the PDF
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfImgWidth, pdfImgHeight);
       
       // Save the PDF
       pdf.save(`${analysisName.replace(/\s+/g, '_')}_export.pdf`);

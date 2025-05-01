@@ -80,7 +80,7 @@ const AnalysisCanvas: React.FC = () => {
     >
       <div 
         ref={canvasRef} 
-        className="h-full relative"
+        className="h-full relative analysis-canvas"
         id="analysis-canvas-content"
       >
         {/* Empty state - shown when no PDF is loaded */}
