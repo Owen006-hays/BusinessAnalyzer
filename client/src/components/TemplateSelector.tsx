@@ -136,10 +136,10 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
     case "5force":
       return (
         <div className="template-grid h-full flex flex-col pointer-events-none">
-          <div className="flex-grow grid grid-cols-1 md:grid-cols-5 grid-rows-auto gap-4 mb-4">
+          <div className="flex-grow grid grid-cols-1 md:grid-cols-10 grid-rows-auto gap-4 mb-4">
             {/* 売り手の交渉力 - 左側縦長エリア */}
-            <div className="md:col-span-1 flex flex-col">
-              <div className="bg-amber-50 border border-amber-200 rounded p-3 flex flex-col w-full flex-grow">
+            <div className="md:col-span-2 flex flex-col">
+              <div className="bg-amber-50 border border-amber-200 rounded p-3 flex flex-col w-full flex-grow min-h-[300px]">
                 <h3 className="text-amber-700 font-medium text-center border-b border-amber-200 pb-1 mb-2">
                   売り手の交渉力
                 </h3>
@@ -147,19 +147,19 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
               </div>
             </div>
             
-            {/* 中央3カラム */}
-            <div className="md:col-span-3">
+            {/* 中央エリア */}
+            <div className="md:col-span-6">
               <div className="flex flex-col h-full">
                 {/* 新規参入の脅威 - 上部横長エリア */}
-                <div className="bg-red-50 border border-red-200 rounded p-3 flex flex-col mb-4 min-h-[100px]">
+                <div className="bg-red-50 border border-red-200 rounded p-3 flex flex-col mb-4 min-h-[140px]">
                   <h3 className="text-red-700 font-medium text-center border-b border-red-200 pb-1 mb-2">
                     新規参入の脅威
                   </h3>
                   <div className="flex-grow template-dropzone pointer-events-auto" data-zone="new_entrants"></div>
                 </div>
                 
-                {/* 業界内の競争 - 中央エリア */}
-                <div className="bg-blue-50 border border-blue-200 rounded p-3 flex flex-col flex-grow min-h-[120px]">
+                {/* 業界内の競争 - 中央エリア (サイズを小さく) */}
+                <div className="bg-blue-50 border border-blue-200 rounded p-3 flex flex-col min-h-[80px]">
                   <h3 className="text-blue-700 font-medium text-center border-b border-blue-200 pb-1 mb-2">
                     業界内の競争
                   </h3>
@@ -167,7 +167,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
                 </div>
                 
                 {/* 代替品の脅威 - 下部横長エリア */}
-                <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col mt-4 min-h-[100px]">
+                <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col mt-4 min-h-[140px]">
                   <h3 className="text-green-700 font-medium text-center border-b border-green-200 pb-1 mb-2">
                     代替品の脅威
                   </h3>
@@ -177,8 +177,8 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
             </div>
             
             {/* 買い手の交渉力 - 右側縦長エリア */}
-            <div className="md:col-span-1 flex flex-col">
-              <div className="bg-indigo-50 border border-indigo-200 rounded p-3 flex flex-col w-full flex-grow">
+            <div className="md:col-span-2 flex flex-col">
+              <div className="bg-indigo-50 border border-indigo-200 rounded p-3 flex flex-col w-full flex-grow min-h-[300px]">
                 <h3 className="text-indigo-700 font-medium text-center border-b border-indigo-200 pb-1 mb-2">
                   買い手の交渉力
                 </h3>
