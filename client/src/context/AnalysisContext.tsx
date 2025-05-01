@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 interface AnalysisContextType {
   // ファイル関連
@@ -40,6 +41,7 @@ interface AnalysisContextType {
   saveAnalysis: () => Promise<void>;
   loadAnalysis: (id: number) => Promise<void>;
   exportAsImage: () => Promise<void>;
+  exportAsPDF: () => Promise<void>;
   
   // Refs
   canvasRef: React.RefObject<HTMLDivElement>;
@@ -560,6 +562,32 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
     link.href = canvas.toDataURL('image/png');
     link.click();
   }, [analysisName]);
+  
+  // Export analysis as PDF
+  const exportAsPDF = useCallback(async () => {
+    if (!canvasRef.current) return;
+    
+    const canvas = await html2canvas(canvasRef.current, {
+      backgroundColor: "white",
+      scale: 2,
+    });
+    
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+    });
+    
+    // Calculate PDF dimensions based on canvas aspect ratio
+    const imgWidth = 297; // A4 landscape width in mm (210mm is portrait height)
+    const imgHeight = (canvas.height * imgWidth) / canvas.width; // scale proportionally
+    
+    // Add the image to the PDF (centered)
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+    
+    // Save the PDF
+    pdf.save(`${analysisName.replace(/\s+/g, '_')}_export.pdf`);
+  }, [analysisName]);
 
   const value = {
     // ファイル関連
@@ -596,6 +624,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
     saveAnalysis,
     loadAnalysis,
     exportAsImage,
+    exportAsPDF,
     
     // Refs
     canvasRef,
