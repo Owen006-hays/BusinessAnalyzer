@@ -88,16 +88,24 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
   const handleExportImage = async () => {
     try {
       setIsExporting(true);
-      await exportAsImage();
+      
+      // 処理開始のトーストを表示
       toast({
-        title: "Export successful",
-        description: "Analysis has been exported as an image",
+        title: "エクスポート処理中...",
+        description: "画像の生成中です。しばらくお待ちください。",
+      });
+      
+      await exportAsImage();
+      
+      toast({
+        title: "エクスポート成功",
+        description: "分析を画像としてエクスポートしました",
       });
     } catch (error) {
       console.error("Error exporting as image:", error);
       toast({
-        title: "Export failed",
-        description: "Failed to export analysis as image",
+        title: "エクスポート失敗",
+        description: "画像としてエクスポートできませんでした",
         variant: "destructive",
       });
     } finally {
@@ -108,16 +116,24 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
   const handleExportPDF = async () => {
     try {
       setIsExporting(true);
-      await exportAsPDF();
+      
+      // 処理開始のトーストを表示
       toast({
-        title: "Export successful",
-        description: "Analysis has been exported as a PDF document",
+        title: "エクスポート処理中...",
+        description: "PDFの生成中です。しばらくお待ちください。",
+      });
+      
+      await exportAsPDF();
+      
+      toast({
+        title: "エクスポート成功",
+        description: "分析をPDFとしてエクスポートしました",
       });
     } catch (error) {
       console.error("Error exporting as PDF:", error);
       toast({
-        title: "Export failed",
-        description: "Failed to export analysis as PDF",
+        title: "エクスポート失敗",
+        description: "PDFとしてエクスポートできませんでした",
         variant: "destructive",
       });
     } finally {
@@ -212,12 +228,30 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
               分析を保存
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleExportImage} disabled={isExporting}>
-              <Image className="h-4 w-4 mr-2" />
-              画像としてエクスポート
+              {isExporting ? (
+                <>
+                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                  エクスポート処理中...
+                </>
+              ) : (
+                <>
+                  <Image className="h-4 w-4 mr-2" />
+                  画像としてエクスポート
+                </>
+              )}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleExportPDF} disabled={isExporting}>
-              <FileText className="h-4 w-4 mr-2" />
-              PDFとしてエクスポート
+              {isExporting ? (
+                <>
+                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                  エクスポート処理中...
+                </>
+              ) : (
+                <>
+                  <FileText className="h-4 w-4 mr-2" />
+                  PDFとしてエクスポート
+                </>
+              )}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

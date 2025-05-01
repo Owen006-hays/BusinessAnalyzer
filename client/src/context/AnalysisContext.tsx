@@ -551,42 +551,102 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
   const exportAsImage = useCallback(async () => {
     if (!canvasRef.current) return;
     
-    const canvas = await html2canvas(canvasRef.current, {
-      backgroundColor: "white",
-      scale: 2,
-    });
+    // 一時的にスタイルを保存
+    const originalStyle = canvasRef.current.getAttribute('style') || '';
+    const computedStyle = window.getComputedStyle(canvasRef.current);
+    const originalHeight = computedStyle.height;
+    const originalWidth = computedStyle.width;
+    const originalOverflow = computedStyle.overflow;
     
-    // Create download link
-    const link = document.createElement('a');
-    link.download = `${analysisName.replace(/\s+/g, '_')}_export.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    try {
+      // スクロールとサイズの設定を変更して全体を見えるようにする
+      canvasRef.current.style.height = 'auto';
+      canvasRef.current.style.width = 'auto';
+      canvasRef.current.style.overflow = 'visible';
+      
+      // 少し遅延を入れて DOM の更新を確実にする
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const canvas = await html2canvas(canvasRef.current, {
+        backgroundColor: "white",
+        scale: 2,
+        useCORS: true, // クロスオリジン画像も対応
+        allowTaint: true, // 外部コンテンツを許可
+        logging: false,
+        windowWidth: document.documentElement.offsetWidth,
+        windowHeight: document.documentElement.offsetHeight,
+        width: canvasRef.current.scrollWidth,
+        height: canvasRef.current.scrollHeight,
+      });
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.download = `${analysisName.replace(/\s+/g, '_')}_export.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } finally {
+      // 元のスタイルに戻す
+      if (canvasRef.current) {
+        canvasRef.current.setAttribute('style', originalStyle);
+      }
+    }
   }, [analysisName]);
   
   // Export analysis as PDF
   const exportAsPDF = useCallback(async () => {
     if (!canvasRef.current) return;
     
-    const canvas = await html2canvas(canvasRef.current, {
-      backgroundColor: "white",
-      scale: 2,
-    });
+    // 一時的にスタイルを保存
+    const originalStyle = canvasRef.current.getAttribute('style') || '';
+    const computedStyle = window.getComputedStyle(canvasRef.current);
+    const originalHeight = computedStyle.height;
+    const originalWidth = computedStyle.width;
+    const originalOverflow = computedStyle.overflow;
     
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({
-      orientation: "landscape",
-      unit: "mm",
-    });
-    
-    // Calculate PDF dimensions based on canvas aspect ratio
-    const imgWidth = 297; // A4 landscape width in mm (210mm is portrait height)
-    const imgHeight = (canvas.height * imgWidth) / canvas.width; // scale proportionally
-    
-    // Add the image to the PDF (centered)
-    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-    
-    // Save the PDF
-    pdf.save(`${analysisName.replace(/\s+/g, '_')}_export.pdf`);
+    try {
+      // スクロールとサイズの設定を変更して全体を見えるようにする
+      canvasRef.current.style.height = 'auto';
+      canvasRef.current.style.width = 'auto';
+      canvasRef.current.style.overflow = 'visible';
+      
+      // 少し遅延を入れて DOM の更新を確実にする
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const canvas = await html2canvas(canvasRef.current, {
+        backgroundColor: "white",
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        windowWidth: document.documentElement.offsetWidth,
+        windowHeight: document.documentElement.offsetHeight,
+        width: canvasRef.current.scrollWidth,
+        height: canvasRef.current.scrollHeight,
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      
+      // ページサイズをコンテンツに合わせて設定（自動的にフィットするようにします）
+      const pdfWidth = Math.min(297, canvas.width / 4); // mm単位、A4ランドスケープの最大幅
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width; // アスペクト比を維持
+      
+      const pdf = new jsPDF({
+        orientation: pdfWidth > pdfHeight ? "landscape" : "portrait",
+        unit: "mm",
+        format: [pdfWidth, pdfHeight], // カスタムサイズ
+      });
+      
+      // Add the image to the PDF (全体表示)
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      
+      // Save the PDF
+      pdf.save(`${analysisName.replace(/\s+/g, '_')}_export.pdf`);
+    } finally {
+      // 元のスタイルに戻す
+      if (canvasRef.current) {
+        canvasRef.current.setAttribute('style', originalStyle);
+      }
+    }
   }, [analysisName]);
 
   const value = {
