@@ -44,7 +44,7 @@ const ZoneSelector: React.FC<ZoneSelectorProps> = ({ text, onClose }) => {
       case "4p": return "4P分析";
       case "3c": return "3C分析";
       case "pest": return "PEST分析";
-      case "5force": return "Five Forces";
+      case "5force": return "5Force分析";
       default: return template;
     }
   };
