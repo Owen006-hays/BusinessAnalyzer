@@ -132,6 +132,53 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
           </div>
         </div>
       );
+    
+    case "5force":
+      return (
+        <div className="template-grid h-full flex flex-col pointer-events-none">
+          {/* 中央の競争 */}
+          <div className="flex-grow grid grid-cols-1 md:grid-cols-3 grid-rows-auto gap-4 mb-4">
+            <div className="md:col-span-1 flex items-center justify-center">
+              <div className="bg-amber-50 border border-amber-200 rounded p-3 flex flex-col w-full min-h-[100px]">
+                <h3 className="text-amber-700 font-medium text-center border-b border-amber-200 pb-1 mb-2">
+                  売り手の交渉力
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="supplier_power"></div>
+              </div>
+            </div>
+            <div className="md:col-span-1">
+              <div className="flex flex-col h-full">
+                <div className="bg-red-50 border border-red-200 rounded p-3 flex flex-col mb-4 min-h-[100px]">
+                  <h3 className="text-red-700 font-medium text-center border-b border-red-200 pb-1 mb-2">
+                    新規参入の脅威
+                  </h3>
+                  <div className="flex-grow template-dropzone pointer-events-auto" data-zone="new_entrants"></div>
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded p-3 flex flex-col flex-grow min-h-[120px]">
+                  <h3 className="text-blue-700 font-medium text-center border-b border-blue-200 pb-1 mb-2">
+                    業界内の競争
+                  </h3>
+                  <div className="flex-grow template-dropzone pointer-events-auto" data-zone="industry_rivalry"></div>
+                </div>
+                <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col mt-4 min-h-[100px]">
+                  <h3 className="text-green-700 font-medium text-center border-b border-green-200 pb-1 mb-2">
+                    代替品の脅威
+                  </h3>
+                  <div className="flex-grow template-dropzone pointer-events-auto" data-zone="substitutes"></div>
+                </div>
+              </div>
+            </div>
+            <div className="md:col-span-1 flex items-center justify-center">
+              <div className="bg-indigo-50 border border-indigo-200 rounded p-3 flex flex-col w-full min-h-[100px]">
+                <h3 className="text-indigo-700 font-medium text-center border-b border-indigo-200 pb-1 mb-2">
+                  買い手の交渉力
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="buyer_power"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
 
     default:
       return null;

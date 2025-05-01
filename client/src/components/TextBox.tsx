@@ -207,6 +207,13 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
       case 'social': return '社会';
       case 'technological': return '技術';
       
+      // 5Force
+      case 'supplier_power': return '売り手の交渉力';
+      case 'buyer_power': return '買い手の交渉力';
+      case 'new_entrants': return '新規参入の脅威';
+      case 'substitutes': return '代替品の脅威';
+      case 'industry_rivalry': return '業界内の競争';
+      
       default: return zone;
     }
   };
@@ -404,6 +411,13 @@ const TextBox: React.FC<TextBoxProps> = ({ box, templateZone }) => {
         case 'economic': return 'bg-blue-100 border-blue-200';
         case 'social': return 'bg-green-100 border-green-200';
         case 'technological': return 'bg-teal-100 border-teal-200';
+        
+        // 5Force
+        case 'supplier_power': return 'bg-amber-100 border-amber-200';
+        case 'buyer_power': return 'bg-indigo-100 border-indigo-200';
+        case 'new_entrants': return 'bg-red-100 border-red-200';
+        case 'substitutes': return 'bg-green-100 border-green-200';
+        case 'industry_rivalry': return 'bg-blue-100 border-blue-200';
       }
     }
     
