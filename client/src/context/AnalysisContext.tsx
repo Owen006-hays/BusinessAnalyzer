@@ -547,45 +547,17 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
   
-  // Export analysis as image
+  // Export analysis as image - シンプルな実装
   const exportAsImage = useCallback(async () => {
     if (!canvasRef.current) return;
     
-    // 一時的にスタイルを保存
-    const originalStyle = canvasRef.current.getAttribute('style') || '';
-    const computedStyle = window.getComputedStyle(canvasRef.current);
-    const originalHeight = computedStyle.height;
-    const originalWidth = computedStyle.width;
-    const originalOverflow = computedStyle.overflow;
-    
-    // 現在の実際のサイズを取得（これを保持します）
-    const currentWidth = canvasRef.current.offsetWidth;
-    const currentHeight = canvasRef.current.offsetHeight;
-    
     try {
-      // テンプレート全体が表示されるように調整しつつ、現在のビューポートサイズを維持
-      canvasRef.current.style.height = `${currentHeight}px`;
-      canvasRef.current.style.width = `${currentWidth}px`;
-      canvasRef.current.style.overflow = 'visible';
-      canvasRef.current.style.position = 'relative';
-      
-      // 少し遅延を入れて DOM の更新を確実にする
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      // 単純化した方法でキャプチャ
       const canvas = await html2canvas(canvasRef.current, {
         backgroundColor: "white",
         scale: 2, // 高解像度で出力
         useCORS: true,
         allowTaint: true,
-        logging: false,
-        // 現在表示されているキャンバスのサイズを維持
-        width: currentWidth,
-        height: currentHeight,
-        // スクロール部分も含めて全体をキャプチャ
-        ignoreElements: (element) => {
-          // 分析キャンバス以外の要素を無視
-          return !element.closest('.analysis-canvas') && !element.classList.contains('analysis-canvas');
-        }
       });
       
       // Create download link
@@ -593,73 +565,29 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       link.download = `${analysisName.replace(/\s+/g, '_')}_export.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-    } finally {
-      // 元のスタイルに戻す
-      if (canvasRef.current) {
-        canvasRef.current.setAttribute('style', originalStyle);
-      }
+    } catch (error) {
+      console.error("画像エクスポートエラー:", error);
+      throw error;
     }
   }, [analysisName]);
   
-  // Export analysis as PDF
+  // Export analysis as PDF - シンプルな実装
   const exportAsPDF = useCallback(async () => {
     if (!canvasRef.current) return;
     
-    // 一時的にスタイルを保存
-    const originalStyle = canvasRef.current.getAttribute('style') || '';
-    const computedStyle = window.getComputedStyle(canvasRef.current);
-    const originalHeight = computedStyle.height;
-    const originalWidth = computedStyle.width;
-    const originalOverflow = computedStyle.overflow;
-    
-    // 現在の実際のサイズを取得（これを保持します）
-    const currentWidth = canvasRef.current.offsetWidth;
-    const currentHeight = canvasRef.current.offsetHeight;
-    
     try {
-      // テンプレート全体が表示されるように調整しつつ、現在のビューポートサイズを維持
-      canvasRef.current.style.height = `${currentHeight}px`;
-      canvasRef.current.style.width = `${currentWidth}px`;
-      canvasRef.current.style.overflow = 'visible';
-      canvasRef.current.style.position = 'relative';
-      
-      // 少し遅延を入れて DOM の更新を確実にする
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      // 単純化した方法でキャプチャ
       const canvas = await html2canvas(canvasRef.current, {
         backgroundColor: "white",
         scale: 2, // 高解像度で出力
         useCORS: true,
         allowTaint: true,
-        logging: false,
-        // 現在表示されているキャンバスのサイズを維持
-        width: currentWidth,
-        height: currentHeight,
-        // スクロール部分も含めて全体をキャプチャ
-        ignoreElements: (element) => {
-          // 分析キャンバス以外の要素を無視
-          return !element.closest('.analysis-canvas') && !element.classList.contains('analysis-canvas');
-        }
       });
       
       const imgData = canvas.toDataURL('image/png');
       
-      // A4サイズに最適化
-      const pageWidth = 210; // A4サイズの幅（mm）
-      const pageHeight = 297; // A4サイズの高さ（mm）
-      
-      // アスペクト比に基づいて適切な向きを選択
-      const isLandscape = currentWidth / currentHeight > pageWidth / pageHeight;
-      
-      // PDFのサイズ計算
-      let pdfWidth, pdfHeight;
-      if (isLandscape) {
-        pdfWidth = pageHeight; // ランドスケープではA4の長辺を幅として使用
-        pdfHeight = pageWidth; 
-      } else {
-        pdfWidth = pageWidth; // ポートレートではA4の短辺を幅として使用
-        pdfHeight = pageHeight;
-      }
+      // 画像のアスペクト比に基づいてPDFの向きを選択
+      const isLandscape = canvas.width > canvas.height;
       
       const pdf = new jsPDF({
         orientation: isLandscape ? "landscape" : "portrait",
@@ -667,21 +595,27 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         format: "a4", // 標準のA4サイズを使用
       });
       
-      // 画像をページに合わせてスケーリング（余白なしでフィット）
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfImgWidth = pdfWidth;
-      const pdfImgHeight = (imgProps.height * pdfImgWidth) / imgProps.width;
+      // PDFのサイズを取得
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
       
-      // Add the image to the PDF
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfImgWidth, pdfImgHeight);
+      // キャンバスのアスペクト比を維持しながらPDFに合わせる
+      const ratio = Math.min(pdfWidth / canvas.width, pdfHeight / canvas.height);
+      const imgWidth = canvas.width * ratio;
+      const imgHeight = canvas.height * ratio;
       
-      // Save the PDF
+      // 中央に配置するための余白を計算
+      const marginX = (pdfWidth - imgWidth) / 2;
+      const marginY = (pdfHeight - imgHeight) / 2;
+      
+      // 画像をPDFに追加
+      pdf.addImage(imgData, 'PNG', marginX, marginY, imgWidth, imgHeight);
+      
+      // PDFを保存
       pdf.save(`${analysisName.replace(/\s+/g, '_')}_export.pdf`);
-    } finally {
-      // 元のスタイルに戻す
-      if (canvasRef.current) {
-        canvasRef.current.setAttribute('style', originalStyle);
-      }
+    } catch (error) {
+      console.error("PDFエクスポートエラー:", error);
+      throw error;
     }
   }, [analysisName]);
 
