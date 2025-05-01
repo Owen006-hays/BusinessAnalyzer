@@ -418,6 +418,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         return ["company", "customer", "competitor"];
       case "pest":
         return ["political", "economic", "social", "technological"];
+      case "5force":
+        return ["supplier_power", "buyer_power", "new_entrants", "substitutes", "industry_rivalry"];
       default:
         return [];
     }

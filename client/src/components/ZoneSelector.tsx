@@ -44,6 +44,7 @@ const ZoneSelector: React.FC<ZoneSelectorProps> = ({ text, onClose }) => {
       case "4p": return "4P分析";
       case "3c": return "3C分析";
       case "pest": return "PEST分析";
+      case "5force": return "Five Forces";
       default: return template;
     }
   };
@@ -73,6 +74,13 @@ const ZoneSelector: React.FC<ZoneSelectorProps> = ({ text, onClose }) => {
       case "economic": return "経済的要因 (Economic)";
       case "social": return "社会的要因 (Social)";
       case "technological": return "技術的要因 (Technological)";
+      
+      // 5Force
+      case "supplier_power": return "売り手の交渉力 (Supplier Power)";
+      case "buyer_power": return "買い手の交渉力 (Buyer Power)";
+      case "new_entrants": return "新規参入の脅威 (New Entrants)";
+      case "substitutes": return "代替品の脅威 (Substitutes)";
+      case "industry_rivalry": return "業界内の競争 (Industry Rivalry)";
       
       default: return zone;
     }
@@ -104,6 +112,13 @@ const ZoneSelector: React.FC<ZoneSelectorProps> = ({ text, onClose }) => {
       case "social": return "bg-green-100 border-green-300";
       case "technological": return "bg-teal-100 border-teal-300";
       
+      // 5Force
+      case "supplier_power": return "bg-amber-100 border-amber-300";
+      case "buyer_power": return "bg-indigo-100 border-indigo-300";
+      case "new_entrants": return "bg-red-100 border-red-300";
+      case "substitutes": return "bg-green-100 border-green-300";
+      case "industry_rivalry": return "bg-blue-100 border-blue-300";
+      
       default: return "bg-gray-100 border-gray-300";
     }
   };
@@ -132,7 +147,7 @@ const ZoneSelector: React.FC<ZoneSelectorProps> = ({ text, onClose }) => {
       <div className="mb-4">
         <p className="text-sm text-gray-600 mb-2">フレームワークを選択:</p>
         <div className="grid grid-cols-2 gap-2">
-          {["swot", "4p", "3c", "pest"].map((template) => (
+          {["swot", "4p", "3c", "pest", "5force"].map((template) => (
             <Button
               key={template}
               variant={currentTemplate === template ? "default" : "outline"}
