@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, Plus, Save, FileDown, LayoutTemplate } from "lucide-react";
+import { Upload, Plus, Save, FileDown, LayoutTemplate, FileText, Image } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +22,7 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
     setAnalysisName,
     saveAnalysis, 
     exportAsImage,
+    exportAsPDF,
     analysisName
   } = useAnalysisContext();
   const { toast } = useToast();
@@ -93,9 +94,30 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
         description: "Analysis has been exported as an image",
       });
     } catch (error) {
+      console.error("Error exporting as image:", error);
       toast({
         title: "Export failed",
         description: "Failed to export analysis as image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  
+  const handleExportPDF = async () => {
+    try {
+      setIsExporting(true);
+      await exportAsPDF();
+      toast({
+        title: "Export successful",
+        description: "Analysis has been exported as a PDF document",
+      });
+    } catch (error) {
+      console.error("Error exporting as PDF:", error);
+      toast({
+        title: "Export failed",
+        description: "Failed to export analysis as PDF",
         variant: "destructive",
       });
     } finally {
@@ -186,10 +208,16 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={handleSaveAnalysis}>
+              <Save className="h-4 w-4 mr-2" />
               分析を保存
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleExportImage} disabled={isExporting}>
+              <Image className="h-4 w-4 mr-2" />
               画像としてエクスポート
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportPDF} disabled={isExporting}>
+              <FileText className="h-4 w-4 mr-2" />
+              PDFとしてエクスポート
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
