@@ -78,21 +78,27 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [currentSheetId, setCurrentSheetId] = useState<number>(1); // デフォルトシートID
   
-  // State for analyses list and saving status
-  const [availableAnalyses, setAvailableAnalyses] = useState<Analysis[]>([]);
-  const [isSaving, setIsSaving] = useState<boolean>(false);
-  
   // テンプレートの状態はシートIDごとに管理
   const [templateMap, setTemplateMap] = useState<Map<number, string | null>>(new Map());
   
   // 現在のテンプレート（現在のシートに関連付けられたもの）
   const currentTemplate = templateMap.get(currentSheetId) || null;
   
+  // テンプレートを設定するラッパー関数
+  const setCurrentTemplate = useCallback((template: string | null) => {
+    setTemplateMap(prev => {
+      const newMap = new Map(prev);
+      newMap.set(currentSheetId, template);
+      return newMap;
+    });
+  }, [currentSheetId]);
+  
   // Refs
   const canvasRef = useRef<HTMLDivElement>(null);
   
-  // Toast utility
-  const { toast } = useToast();
+  // State for analyses list and saving status
+  const [availableAnalyses, setAvailableAnalyses] = useState<Analysis[]>([]);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   
   // 利用可能な分析一覧を取得
   const fetchAnalyses = useCallback(async () => {
@@ -115,15 +121,6 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
   const refreshAnalyses = useCallback(() => {
     fetchAnalyses();
   }, [fetchAnalyses]);
-  
-  // テンプレートを設定するラッパー関数
-  const setCurrentTemplate = useCallback((template: string | null) => {
-    setTemplateMap(prev => {
-      const newMap = new Map(prev);
-      newMap.set(currentSheetId, template);
-      return newMap;
-    });
-  }, [currentSheetId]);
   
   // Fetch sheets for the current analysis
   useEffect(() => {
@@ -489,6 +486,9 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
     deleteSheetMutation.mutate(id);
   }, [sheets.length, deleteSheetMutation]);
   
+  // Toast utility
+  const { toast } = useToast();
+  
   // Save the analysis to the server
   const saveAnalysis = useCallback(async () => {
     try {
@@ -517,6 +517,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       });
       
       console.log("Analysis saved successfully");
+      return true;
     } catch (error) {
       console.error("Error saving analysis:", error);
       
@@ -526,6 +527,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         variant: "destructive",
         duration: 3000,
       });
+      
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -555,6 +558,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       });
       
       console.log("Analysis loaded successfully");
+      return true;
     } catch (error) {
       console.error("Error loading analysis:", error);
       
@@ -564,6 +568,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         variant: "destructive",
         duration: 3000,
       });
+      
+      return false;
     }
   }, [toast]);
   
@@ -589,6 +595,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       });
       
       console.log("Autosave successful:", autosaveData);
+      return true;
     } catch (error) {
       console.error("Error during autosave:", error);
       
@@ -598,6 +605,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         variant: "destructive",
         duration: 3000,
       });
+      
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -634,7 +643,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
           description: "復元できる自動保存データが見つかりませんでした",
           duration: 3000,
         });
-        return;
+        return false;
       }
       
       // 自動保存から読み込む
@@ -645,6 +654,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         description: "最後の自動保存から分析を復元しました",
         duration: 3000,
       });
+      
+      return true;
     } catch (error) {
       console.error("Error loading autosave:", error);
       
@@ -654,6 +665,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         variant: "destructive",
         duration: 3000,
       });
+      
+      return false;
     }
   }, [checkForAutosave, loadAnalysis, toast]);
   

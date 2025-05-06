@@ -213,6 +213,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(204).end();
   });
 
+  // 自動保存用のエンドポイント
+  app.post("/api/autosave/:analysisId", async (req, res) => {
+    const analysisId = parseInt(req.params.analysisId, 10);
+    if (isNaN(analysisId)) {
+      return res.status(400).json({ message: "Invalid analysis ID" });
+    }
+    
+    try {
+      const autosaveAnalysis = await storage.autoSaveAnalysis(analysisId);
+      if (!autosaveAnalysis) {
+        return res.status(404).json({ message: "Analysis not found or autosave failed" });
+      }
+      
+      res.json(autosaveAnalysis);
+    } catch (error) {
+      console.error("Autosave error:", error);
+      res.status(500).json({ message: "Failed to create autosave" });
+    }
+  });
+  
+  // 最新の自動保存を取得するエンドポイント
+  app.get("/api/autosave/last", async (req, res) => {
+    try {
+      const lastAutosave = await storage.getLastAutosave();
+      if (!lastAutosave) {
+        return res.status(404).json({ message: "No autosave found" });
+      }
+      
+      res.json(lastAutosave);
+    } catch (error) {
+      console.error("Error getting last autosave:", error);
+      res.status(500).json({ message: "Failed to get last autosave" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, Plus, Save, FileDown, LayoutTemplate, FileText, Image, HelpCircle } from "lucide-react";
+import { Upload, Plus, Save, FileDown, LayoutTemplate, FileText, Image, HelpCircle, RotateCcw, History } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useAnalysisContext } from "@/context/AnalysisContext";
 import { useToast } from "@/hooks/use-toast";
@@ -22,9 +23,12 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
     setCurrentTemplate, 
     setAnalysisName,
     saveAnalysis, 
+    autoSaveAnalysis,
+    loadAutosave,
     exportAsImage,
     exportAsPDF,
-    analysisName
+    analysisName,
+    isSaving
   } = useAnalysisContext();
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
