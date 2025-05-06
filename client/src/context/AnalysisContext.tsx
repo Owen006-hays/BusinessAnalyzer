@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from "react";
 import { TextBox, Analysis, Sheet } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { useToast } from "@/hooks/use-toast";
 
 interface AnalysisContextType {
   // ファイル関連
@@ -40,11 +41,19 @@ interface AnalysisContextType {
   setAnalysisName: (name: string) => void;
   saveAnalysis: () => Promise<void>;
   loadAnalysis: (id: number) => Promise<void>;
+  autoSaveAnalysis: () => Promise<void>; // 自動保存機能
+  checkForAutosave: () => Promise<Analysis | undefined>; // 自動保存の確認機能
+  loadAutosave: () => Promise<void>; // 自動保存からの読み込み機能
   exportAsImage: () => Promise<void>;
   exportAsPDF: () => Promise<void>;
   
+  // Analyses management
+  availableAnalyses: Analysis[]; // 利用可能な分析一覧
+  refreshAnalyses: () => void; // 分析一覧を更新
+  
   // Refs
   canvasRef: React.RefObject<HTMLDivElement>;
+  isSaving: boolean; // 保存中かどうかのフラグ
 }
 
 const AnalysisContext = createContext<AnalysisContextType | undefined>(undefined);

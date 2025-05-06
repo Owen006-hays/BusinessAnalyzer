@@ -4,6 +4,8 @@ import {
   analyses, type Analysis, type InsertAnalysis,
   sheets, type Sheet, type InsertSheet
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, and } from "drizzle-orm";
 
 // Storage interface for our application
 export interface IStorage {
@@ -31,221 +33,281 @@ export interface IStorage {
   createAnalysis(analysis: InsertAnalysis): Promise<Analysis>;
   updateAnalysis(id: number, analysis: Partial<InsertAnalysis>): Promise<Analysis | undefined>;
   deleteAnalysis(id: number): Promise<boolean>;
+  
+  // Auto-save features
+  autoSaveAnalysis(analysisId: number): Promise<Analysis | undefined>;
+  getLastAutosave(): Promise<Analysis | undefined>;
 }
 
-// In-memory implementation of the storage interface
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private sheets: Map<number, Sheet>;
-  private textBoxes: Map<number, TextBox>;
-  private analyses: Map<number, Analysis>;
-  
-  private userId: number;
-  private sheetId: number;
-  private textBoxId: number;
-  private analysisId: number;
-  
+export class DatabaseStorage implements IStorage {
   constructor() {
-    this.users = new Map();
-    this.sheets = new Map();
-    this.textBoxes = new Map();
-    this.analyses = new Map();
-    
-    this.userId = 1;
-    this.sheetId = 1;
-    this.textBoxId = 1;
-    this.analysisId = 1;
-    
-    // Create a default analysis for users to start with
-    const defaultAnalysis: Analysis = {
-      id: this.analysisId++,
-      name: "New Analysis",
-      pdfName: null,
-      imageName: null,
-      createdAt: new Date().toISOString(),
-    };
-    this.analyses.set(defaultAnalysis.id, defaultAnalysis);
-    
-    // Create a default sheet for the analysis
-    const defaultSheet: Sheet = {
-      id: this.sheetId++,
-      name: "Sheet 1",
-      template: null,
-      order: 1,
-      analysisId: defaultAnalysis.id,
-    };
-    this.sheets.set(defaultSheet.id, defaultSheet);
+    this.initializeDatabase();
   }
-  
+
+  private async initializeDatabase() {
+    try {
+      // Check if there are any analyses in the database
+      const existingAnalyses = await db.select().from(analyses);
+      
+      // If no analyses exist, create a default one
+      if (existingAnalyses.length === 0) {
+        const defaultAnalysis: InsertAnalysis = {
+          name: "New Analysis",
+          pdfName: null,
+          imageName: null,
+          createdAt: new Date().toISOString(),
+        };
+        
+        const [analysis] = await db.insert(analyses).values(defaultAnalysis).returning();
+        
+        const defaultSheet: InsertSheet = {
+          name: "Sheet 1",
+          template: null,
+          order: 1,
+          analysisId: analysis.id,
+        };
+        
+        await db.insert(sheets).values(defaultSheet).returning();
+      }
+    } catch (error) {
+      console.error("Error initializing database:", error);
+    }
+  }
+
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-  
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-  
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
-  
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
   // Sheet methods
   async getSheetsByAnalysisId(analysisId: number): Promise<Sheet[]> {
-    return Array.from(this.sheets.values())
-      .filter(sheet => sheet.analysisId === analysisId)
-      .sort((a, b) => a.order - b.order); // 順番に並べ替え
+    return await db
+      .select()
+      .from(sheets)
+      .where(eq(sheets.analysisId, analysisId))
+      .orderBy(sheets.order);
   }
-  
+
   async getSheet(id: number): Promise<Sheet | undefined> {
-    return this.sheets.get(id);
-  }
-  
-  async createSheet(insertSheet: InsertSheet): Promise<Sheet> {
-    const id = this.sheetId++;
-    
-    const sheet: Sheet = {
-      id,
-      name: insertSheet.name,
-      template: insertSheet.template ?? null,
-      order: insertSheet.order,
-      analysisId: insertSheet.analysisId,
-    };
-    
-    this.sheets.set(id, sheet);
+    const [sheet] = await db.select().from(sheets).where(eq(sheets.id, id));
     return sheet;
   }
-  
+
+  async createSheet(insertSheet: InsertSheet): Promise<Sheet> {
+    const [sheet] = await db.insert(sheets).values(insertSheet).returning();
+    return sheet;
+  }
+
   async updateSheet(id: number, updateData: Partial<InsertSheet>): Promise<Sheet | undefined> {
-    const existingSheet = this.sheets.get(id);
-    if (!existingSheet) return undefined;
-    
-    const updatedSheet: Sheet = { ...existingSheet, ...updateData };
-    this.sheets.set(id, updatedSheet);
+    const [updatedSheet] = await db
+      .update(sheets)
+      .set(updateData)
+      .where(eq(sheets.id, id))
+      .returning();
     return updatedSheet;
   }
-  
+
   async deleteSheet(id: number): Promise<boolean> {
-    // シートに関連付けられたテキストボックスを削除
-    Array.from(this.textBoxes.values())
-      .filter(textBox => textBox.sheetId === id)
-      .forEach(textBox => this.textBoxes.delete(textBox.id));
+    // First delete all text boxes associated with this sheet
+    await db.delete(textBoxes).where(eq(textBoxes.sheetId, id));
     
-    // シートを削除
-    return this.sheets.delete(id);
+    // Then delete the sheet
+    const result = await db.delete(sheets).where(eq(sheets.id, id)).returning();
+    return result.length > 0;
   }
-  
+
   // TextBox methods
   async getTextBoxesBySheetId(sheetId: number): Promise<TextBox[]> {
-    return Array.from(this.textBoxes.values()).filter(
-      (textBox) => textBox.sheetId === sheetId,
-    );
+    return await db.select().from(textBoxes).where(eq(textBoxes.sheetId, sheetId));
   }
-  
+
   // 後方互換性のため、analysisIdに関連するすべてのシートのテキストボックスを取得するメソッド
   async getTextBoxesByAnalysisId(analysisId: number): Promise<TextBox[]> {
     // まず関連するシートをすべて取得
-    const sheets = await this.getSheetsByAnalysisId(analysisId);
-    const sheetIds = sheets.map(sheet => sheet.id);
+    const sheetsData = await this.getSheetsByAnalysisId(analysisId);
+    const sheetIds = sheetsData.map(sheet => sheet.id);
+    
+    if (sheetIds.length === 0) return [];
     
     // 各シートに関連するテキストボックスを取得
-    return Array.from(this.textBoxes.values()).filter(
-      (textBox) => sheetIds.includes(textBox.sheetId)
-    );
-  }
-  
-  async createTextBox(insertTextBox: InsertTextBox): Promise<TextBox> {
-    const id = this.textBoxId++;
+    const allTextBoxes: TextBox[] = [];
     
-    // 明示的に必要なプロパティを設定して、undefinedを避ける
-    const textBox: TextBox = {
-      id,
-      content: insertTextBox.content,
-      x: insertTextBox.x,
-      y: insertTextBox.y,
-      width: insertTextBox.width ?? 200, // デフォルト値を設定
-      height: insertTextBox.height ?? null,
-      color: insertTextBox.color ?? null,
-      zone: insertTextBox.zone ?? null,
-      sheetId: insertTextBox.sheetId
-    };
-    
-    this.textBoxes.set(id, textBox);
-    return textBox;
-  }
-  
-  async updateTextBox(id: number, updateData: Partial<InsertTextBox>): Promise<TextBox | undefined> {
-    const existingTextBox = this.textBoxes.get(id);
-    if (!existingTextBox) return undefined;
-    
-    const updatedTextBox: TextBox = { ...existingTextBox, ...updateData };
-    this.textBoxes.set(id, updatedTextBox);
-    return updatedTextBox;
-  }
-  
-  async deleteTextBox(id: number): Promise<boolean> {
-    return this.textBoxes.delete(id);
-  }
-  
-  // Analysis methods
-  async getAnalyses(): Promise<Analysis[]> {
-    return Array.from(this.analyses.values());
-  }
-  
-  async getAnalysis(id: number): Promise<Analysis | undefined> {
-    return this.analyses.get(id);
-  }
-  
-  async createAnalysis(insertAnalysis: InsertAnalysis): Promise<Analysis> {
-    const id = this.analysisId++;
-    
-    // 明示的に必要なプロパティを設定して、undefinedを避ける
-    const analysis: Analysis = {
-      id,
-      name: insertAnalysis.name,
-      pdfName: insertAnalysis.pdfName ?? null,
-      imageName: insertAnalysis.imageName ?? null,
-      createdAt: insertAnalysis.createdAt
-    };
-    
-    this.analyses.set(id, analysis);
-    return analysis;
-  }
-  
-  async updateAnalysis(id: number, updateData: Partial<InsertAnalysis>): Promise<Analysis | undefined> {
-    const existingAnalysis = this.analyses.get(id);
-    if (!existingAnalysis) return undefined;
-    
-    // 更新データを適切に処理
-    const updatedAnalysis: Analysis = {
-      ...existingAnalysis,
-      name: updateData.name !== undefined ? updateData.name : existingAnalysis.name,
-      pdfName: updateData.pdfName !== undefined ? updateData.pdfName : existingAnalysis.pdfName,
-      imageName: updateData.imageName !== undefined ? updateData.imageName : existingAnalysis.imageName,
-      createdAt: updateData.createdAt !== undefined ? updateData.createdAt : existingAnalysis.createdAt
-    };
-    
-    this.analyses.set(id, updatedAnalysis);
-    return updatedAnalysis;
-  }
-  
-  async deleteAnalysis(id: number): Promise<boolean> {
-    // まず、この分析に関連するすべてのシートを取得
-    const sheets = await this.getSheetsByAnalysisId(id);
-    
-    // 各シートとそれに関連するテキストボックスを削除
-    for (const sheet of sheets) {
-      await this.deleteSheet(sheet.id);
+    for (const sheetId of sheetIds) {
+      const textBoxesData = await this.getTextBoxesBySheetId(sheetId);
+      allTextBoxes.push(...textBoxesData);
     }
     
-    // 分析を削除
-    return this.analyses.delete(id);
+    return allTextBoxes;
+  }
+
+  async createTextBox(insertTextBox: InsertTextBox): Promise<TextBox> {
+    const [textBox] = await db.insert(textBoxes).values(insertTextBox).returning();
+    return textBox;
+  }
+
+  async updateTextBox(id: number, updateData: Partial<InsertTextBox>): Promise<TextBox | undefined> {
+    const [updatedTextBox] = await db
+      .update(textBoxes)
+      .set(updateData)
+      .where(eq(textBoxes.id, id))
+      .returning();
+    return updatedTextBox;
+  }
+
+  async deleteTextBox(id: number): Promise<boolean> {
+    const result = await db.delete(textBoxes).where(eq(textBoxes.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Analysis methods
+  async getAnalyses(): Promise<Analysis[]> {
+    return await db.select().from(analyses).orderBy(desc(analyses.id));
+  }
+
+  async getAnalysis(id: number): Promise<Analysis | undefined> {
+    const [analysis] = await db.select().from(analyses).where(eq(analyses.id, id));
+    return analysis;
+  }
+
+  async createAnalysis(insertAnalysis: InsertAnalysis): Promise<Analysis> {
+    const [analysis] = await db.insert(analyses).values(insertAnalysis).returning();
+    return analysis;
+  }
+
+  async updateAnalysis(id: number, updateData: Partial<InsertAnalysis>): Promise<Analysis | undefined> {
+    const [updatedAnalysis] = await db
+      .update(analyses)
+      .set(updateData)
+      .where(eq(analyses.id, id))
+      .returning();
+    return updatedAnalysis;
+  }
+
+  async deleteAnalysis(id: number): Promise<boolean> {
+    // Get all sheets for this analysis
+    const analysisSheets = await this.getSheetsByAnalysisId(id);
+    
+    // Delete all text boxes for each sheet
+    for (const sheet of analysisSheets) {
+      await db.delete(textBoxes).where(eq(textBoxes.sheetId, sheet.id));
+    }
+    
+    // Delete all sheets for this analysis
+    await db.delete(sheets).where(eq(sheets.analysisId, id));
+    
+    // Finally delete the analysis
+    const result = await db.delete(analyses).where(eq(analyses.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Auto-save features
+  async getLastAutosave(): Promise<Analysis | undefined> {
+    // Look for analyses with "Autosave" in the name
+    const [autosave] = await db
+      .select()
+      .from(analyses)
+      .where(eq(analyses.name, "Autosave"))
+      .orderBy(desc(analyses.createdAt))
+      .limit(1);
+    
+    return autosave;
+  }
+
+  async autoSaveAnalysis(analysisId: number): Promise<Analysis | undefined> {
+    try {
+      // Get the original analysis
+      const originalAnalysis = await this.getAnalysis(analysisId);
+      if (!originalAnalysis) return undefined;
+      
+      // Check if an autosave already exists, update it if so
+      const existingAutosave = await db
+        .select()
+        .from(analyses)
+        .where(eq(analyses.name, "Autosave"))
+        .limit(1);
+      
+      let autosaveAnalysis: Analysis;
+      
+      if (existingAutosave.length > 0) {
+        // Update the existing autosave
+        const [updated] = await db
+          .update(analyses)
+          .set({ createdAt: new Date().toISOString() })
+          .where(eq(analyses.id, existingAutosave[0].id))
+          .returning();
+        
+        autosaveAnalysis = updated;
+        
+        // Delete the existing sheets and textboxes for this autosave
+        const autosaveSheets = await this.getSheetsByAnalysisId(autosaveAnalysis.id);
+        for (const sheet of autosaveSheets) {
+          await db.delete(textBoxes).where(eq(textBoxes.sheetId, sheet.id));
+        }
+        await db.delete(sheets).where(eq(sheets.analysisId, autosaveAnalysis.id));
+      } else {
+        // Create a new autosave analysis
+        const [newAutosave] = await db
+          .insert(analyses)
+          .values({
+            name: "Autosave",
+            pdfName: originalAnalysis.pdfName,
+            imageName: originalAnalysis.imageName,
+            createdAt: new Date().toISOString(),
+          })
+          .returning();
+        
+        autosaveAnalysis = newAutosave;
+      }
+      
+      // Copy all sheets and textboxes from the original analysis to the autosave
+      const originalSheets = await this.getSheetsByAnalysisId(analysisId);
+      
+      for (const originalSheet of originalSheets) {
+        // Create a copy of the sheet for the autosave
+        const [newSheet] = await db
+          .insert(sheets)
+          .values({
+            name: originalSheet.name,
+            template: originalSheet.template,
+            order: originalSheet.order,
+            analysisId: autosaveAnalysis.id,
+          })
+          .returning();
+        
+        // Copy all textboxes from the original sheet to the new sheet
+        const originalTextBoxes = await this.getTextBoxesBySheetId(originalSheet.id);
+        
+        for (const textBox of originalTextBoxes) {
+          await db.insert(textBoxes).values({
+            content: textBox.content,
+            x: textBox.x,
+            y: textBox.y,
+            width: textBox.width,
+            height: textBox.height,
+            color: textBox.color,
+            zone: textBox.zone,
+            sheetId: newSheet.id,
+          });
+        }
+      }
+      
+      return autosaveAnalysis;
+    } catch (error) {
+      console.error("Error during autosave:", error);
+      return undefined;
+    }
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
