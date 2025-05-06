@@ -356,24 +356,24 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
       return (
         <div className="template-grid h-full flex flex-col pointer-events-none">
           {/* リソース入力エリア */}
-          <div className="mb-4 bg-blue-50 border border-blue-200 rounded p-3">
+          <div className="mb-4 bg-blue-50 border border-blue-200 rounded p-3 min-h-[120px]">
             <h3 className="text-blue-700 font-medium text-center border-b border-blue-200 pb-1 mb-2">
               分析対象リソース
             </h3>
             <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vrio_resources"></div>
           </div>
           
-          {/* VRIO評価マトリックス */}
-          <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col">
-              <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col min-h-[150px] mb-4">
+          {/* VRIO評価マトリックス - 高さを調整 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+            <div className="flex flex-col h-full">
+              <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col flex-1 mb-4">
                 <h3 className="text-green-700 font-medium text-center border-b border-green-200 pb-1 mb-2">
                   価値 (Value)
                 </h3>
                 <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vrio_value"></div>
               </div>
               
-              <div className="bg-purple-50 border border-purple-200 rounded p-3 flex flex-col min-h-[150px]">
+              <div className="bg-purple-50 border border-purple-200 rounded p-3 flex flex-col flex-1">
                 <h3 className="text-purple-700 font-medium text-center border-b border-purple-200 pb-1 mb-2">
                   希少性 (Rarity)
                 </h3>
@@ -381,15 +381,15 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
               </div>
             </div>
             
-            <div className="flex flex-col">
-              <div className="bg-amber-50 border border-amber-200 rounded p-3 flex flex-col min-h-[150px] mb-4">
+            <div className="flex flex-col h-full">
+              <div className="bg-amber-50 border border-amber-200 rounded p-3 flex flex-col flex-1 mb-4">
                 <h3 className="text-amber-700 font-medium text-center border-b border-amber-200 pb-1 mb-2">
                   模倣困難性 (Imitability)
                 </h3>
                 <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vrio_imitability"></div>
               </div>
               
-              <div className="bg-indigo-50 border border-indigo-200 rounded p-3 flex flex-col min-h-[150px]">
+              <div className="bg-indigo-50 border border-indigo-200 rounded p-3 flex flex-col flex-1">
                 <h3 className="text-indigo-700 font-medium text-center border-b border-indigo-200 pb-1 mb-2">
                   組織 (Organization)
                 </h3>
@@ -398,7 +398,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
             </div>
           </div>
           
-          {/* 結論エリア */}
+          {/* 結論エリア - マージンを調整 */}
           <div className="mt-4 bg-pink-50 border border-pink-200 rounded p-3 flex flex-col min-h-[100px]">
             <h3 className="text-pink-700 font-medium text-center border-b border-pink-200 pb-1 mb-2">
               結論 (持続的競争優位性の評価)
