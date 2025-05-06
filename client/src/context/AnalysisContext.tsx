@@ -534,6 +534,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
   // Load an analysis from the server
   const loadAnalysis = useCallback(async (id: number) => {
     try {
+      setIsSaving(true);
       // 分析情報を取得
       const response = await fetch(`/api/analyses/${id}`);
       if (!response.ok) {
@@ -542,11 +543,37 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       
       const analysis: Analysis = await response.json();
       
+      // シート情報を直接取得して処理（テンプレート情報も含む）
+      const sheetsResponse = await fetch(`/api/sheets/analysis/${id}`);
+      if (!sheetsResponse.ok) {
+        throw new Error("Failed to fetch sheets");
+      }
+      
+      const sheets = await sheetsResponse.json();
+      setSheets(sheets);
+      
+      // シートのテンプレート情報を復元
+      if (sheets.length > 0) {
+        // 最初のシートを選択
+        setCurrentSheetId(sheets[0].id);
+        
+        // 各シートのテンプレート情報をMapに登録
+        const newTemplateMap = new Map<number, string | null>();
+        sheets.forEach((sheet: Sheet) => {
+          console.log(`シート ${sheet.id} のテンプレート: ${sheet.template}`);
+          newTemplateMap.set(sheet.id, sheet.template);
+        });
+        
+        // テンプレートマップを更新
+        setTemplateMap(newTemplateMap);
+      }
+      
+      // テキストボックスのキャッシュをクリア（新しく読み込むため）
+      setTextBoxesCache(new Map());
+      
       // 状態を更新
       setAnalysisId(analysis.id);
       setAnalysisName(analysis.name);
-      
-      // シートとテキストボックスはuseEffectで自動的に読み込まれる
       
       toast({
         title: "読み込み完了",
@@ -564,6 +591,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         variant: "destructive",
         duration: 3000,
       });
+    } finally {
+      setIsSaving(false);
     }
   }, [toast]);
   
@@ -627,6 +656,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
   // 自動保存から復元する
   const loadAutosave = useCallback(async () => {
     try {
+      setIsSaving(true);
       const autosave = await checkForAutosave();
       if (!autosave) {
         toast({
@@ -640,6 +670,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       // 自動保存から読み込む
       await loadAnalysis(autosave.id);
       
+      // テンプレート情報が正しく表示されるようUI更新を促す
       toast({
         title: "自動保存から復元",
         description: "最後の自動保存から分析を復元しました",
@@ -654,6 +685,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         variant: "destructive",
         duration: 3000,
       });
+    } finally {
+      setIsSaving(false);
     }
   }, [checkForAutosave, loadAnalysis, toast]);
   
