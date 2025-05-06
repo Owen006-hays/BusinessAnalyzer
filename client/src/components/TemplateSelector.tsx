@@ -351,6 +351,78 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
           </div>
         </div>
       );
+      
+    case "vrio":
+      return (
+        <div className="template-grid h-full flex flex-col pointer-events-none">
+          {/* VRIO分析のフレームワーク説明 */}
+          <div className="mb-4 bg-gray-50 border border-gray-200 rounded p-3">
+            <h3 className="text-gray-700 font-medium text-center border-b border-gray-200 pb-1 mb-2">
+              VRIO分析フレームワーク
+            </h3>
+            <div className="text-sm text-gray-600 mb-2">
+              <p>企業の内部リソースを以下の4つの視点から分析し、持続的競争優位性を評価します。</p>
+              <ul className="list-disc pl-5 mt-1">
+                <li><span className="font-medium">V: 価値 (Value)</span> - そのリソースは顧客に価値を提供するか</li>
+                <li><span className="font-medium">R: 希少性 (Rarity)</span> - そのリソースは希少で競合が持っていないか</li>
+                <li><span className="font-medium">I: 模倣困難性 (Imitability)</span> - そのリソースは簡単に模倣できないか</li>
+                <li><span className="font-medium">O: 組織 (Organization)</span> - 組織はそのリソースを活用できる体制か</li>
+              </ul>
+            </div>
+          </div>
+          
+          {/* リソース入力エリア */}
+          <div className="mb-4 bg-blue-50 border border-blue-200 rounded p-3">
+            <h3 className="text-blue-700 font-medium text-center border-b border-blue-200 pb-1 mb-2">
+              分析対象リソース
+            </h3>
+            <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vrio_resources"></div>
+          </div>
+          
+          {/* VRIO評価マトリックス */}
+          <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col">
+              <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col min-h-[150px] mb-4">
+                <h3 className="text-green-700 font-medium text-center border-b border-green-200 pb-1 mb-2">
+                  価値 (Value)
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vrio_value"></div>
+              </div>
+              
+              <div className="bg-purple-50 border border-purple-200 rounded p-3 flex flex-col min-h-[150px]">
+                <h3 className="text-purple-700 font-medium text-center border-b border-purple-200 pb-1 mb-2">
+                  希少性 (Rarity)
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vrio_rarity"></div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col">
+              <div className="bg-amber-50 border border-amber-200 rounded p-3 flex flex-col min-h-[150px] mb-4">
+                <h3 className="text-amber-700 font-medium text-center border-b border-amber-200 pb-1 mb-2">
+                  模倣困難性 (Imitability)
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vrio_imitability"></div>
+              </div>
+              
+              <div className="bg-indigo-50 border border-indigo-200 rounded p-3 flex flex-col min-h-[150px]">
+                <h3 className="text-indigo-700 font-medium text-center border-b border-indigo-200 pb-1 mb-2">
+                  組織 (Organization)
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vrio_organization"></div>
+              </div>
+            </div>
+          </div>
+          
+          {/* 結論エリア */}
+          <div className="mt-4 bg-pink-50 border border-pink-200 rounded p-3 flex flex-col min-h-[100px]">
+            <h3 className="text-pink-700 font-medium text-center border-b border-pink-200 pb-1 mb-2">
+              結論 (持続的競争優位性の評価)
+            </h3>
+            <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vrio_conclusion"></div>
+          </div>
+        </div>
+      );
 
     default:
       return null;

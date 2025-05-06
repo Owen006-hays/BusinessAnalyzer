@@ -427,6 +427,14 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         case "vc_procurement": color = "amber"; break;
         case "vc_strengths": color = "green"; break;
         case "vc_improvements": color = "red"; break;
+        
+        // VRIO分析のゾーン
+        case "vrio_resources": color = "blue"; break;
+        case "vrio_value": color = "green"; break;
+        case "vrio_rarity": color = "purple"; break;
+        case "vrio_imitability": color = "amber"; break;
+        case "vrio_organization": color = "indigo"; break;
+        case "vrio_conclusion": color = "pink"; break;
       }
       
       // テキストボックスを追加
@@ -466,6 +474,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
           "vc_infrastructure", "vc_hr_management", "vc_technology", "vc_procurement",
           "vc_strengths", "vc_improvements"
         ];
+      case "vrio":
+        return ["vrio_resources", "vrio_value", "vrio_rarity", "vrio_imitability", "vrio_organization", "vrio_conclusion"];
       default:
         return [];
     }
