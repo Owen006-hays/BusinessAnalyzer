@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, Plus, Save, FileDown, LayoutTemplate, FileText, Image, HelpCircle, RotateCcw, History } from "lucide-react";
+import { Upload, Plus, Save, LayoutTemplate, FileText, Image, HelpCircle, History } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,14 +21,11 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
   const { 
     addTextBox, 
     setCurrentTemplate, 
-    setAnalysisName,
-    saveAnalysis, 
     autoSaveAnalysis,
     loadAutosave,
     checkForAutosave,
     exportAsImage,
     exportAsPDF,
-    analysisName,
     isSaving
   } = useAnalysisContext();
   const { toast } = useToast();
@@ -87,21 +84,7 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
     addTextBox("新しいテキスト", 100, 100);
   };
 
-  const handleSaveAnalysis = async () => {
-    try {
-      await saveAnalysis();
-      toast({
-        title: "Analysis saved",
-        description: "Your analysis has been saved successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error saving analysis",
-        description: "An error occurred while saving your analysis",
-        variant: "destructive",
-      });
-    }
-  };
+  // 保存機能は自動保存のみを実装
 
   const handleExportImage = async () => {
     try {
@@ -314,7 +297,7 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleSaveAnalysis} disabled={isSaving}>
+            <DropdownMenuItem onClick={handleAutoSave} disabled={isSaving}>
               {isSaving ? (
                 <>
                   <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
@@ -324,20 +307,6 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
                 <>
                   <Save className="h-4 w-4 mr-2" />
                   分析を保存
-                </>
-              )}
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem onClick={handleAutoSave} disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                  自動保存中...
-                </>
-              ) : (
-                <>
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  自動保存
                 </>
               )}
             </DropdownMenuItem>
