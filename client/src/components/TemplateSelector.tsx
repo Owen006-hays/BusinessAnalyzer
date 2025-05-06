@@ -355,22 +355,6 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
     case "vrio":
       return (
         <div className="template-grid h-full flex flex-col pointer-events-none">
-          {/* VRIO分析のフレームワーク説明 */}
-          <div className="mb-4 bg-gray-50 border border-gray-200 rounded p-3">
-            <h3 className="text-gray-700 font-medium text-center border-b border-gray-200 pb-1 mb-2">
-              VRIO分析フレームワーク
-            </h3>
-            <div className="text-sm text-gray-600 mb-2">
-              <p>企業の内部リソースを以下の4つの視点から分析し、持続的競争優位性を評価します。</p>
-              <ul className="list-disc pl-5 mt-1">
-                <li><span className="font-medium">V: 価値 (Value)</span> - そのリソースは顧客に価値を提供するか</li>
-                <li><span className="font-medium">R: 希少性 (Rarity)</span> - そのリソースは希少で競合が持っていないか</li>
-                <li><span className="font-medium">I: 模倣困難性 (Imitability)</span> - そのリソースは簡単に模倣できないか</li>
-                <li><span className="font-medium">O: 組織 (Organization)</span> - 組織はそのリソースを活用できる体制か</li>
-              </ul>
-            </div>
-          </div>
-          
           {/* リソース入力エリア */}
           <div className="mb-4 bg-blue-50 border border-blue-200 rounded p-3">
             <h3 className="text-blue-700 font-medium text-center border-b border-blue-200 pb-1 mb-2">

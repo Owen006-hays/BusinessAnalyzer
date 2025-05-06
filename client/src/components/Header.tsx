@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, Plus, Save, FileDown, LayoutTemplate, FileText, Image } from "lucide-react";
+import { Upload, Plus, Save, FileDown, LayoutTemplate, FileText, Image, HelpCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAnalysisContext } from "@/context/AnalysisContext";
 import { useToast } from "@/hooks/use-toast";
+import FrameworkInfo from "./FrameworkInfo";
 
 interface HeaderProps {
   onPdfUpload: (file: File) => void;
@@ -27,6 +28,7 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
   } = useAnalysisContext();
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
+  const [showFrameworkInfo, setShowFrameworkInfo] = useState(false);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -222,6 +224,18 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
           </DropdownMenuContent>
         </DropdownMenu>
         
+        {/* Framework Info button */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="bg-secondary-light hover:bg-secondary text-secondary-dark"
+          onClick={() => setShowFrameworkInfo(true)}
+        >
+          <HelpCircle className="h-4 w-4 mr-1" />
+          <span className="hidden md:inline">フレームワーク説明</span>
+          <span className="inline md:hidden">説明</span>
+        </Button>
+        
         {/* Save/Export dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -265,6 +279,12 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      
+      {/* フレームワーク説明モーダル */}
+      <FrameworkInfo 
+        isOpen={showFrameworkInfo} 
+        onClose={() => setShowFrameworkInfo(false)} 
+      />
     </header>
   );
 };
