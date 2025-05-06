@@ -376,21 +376,57 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
       // テンプレートに応じた色を設定
       let color = "white";
       switch (zone) {
+        // SWOT分析のゾーン
         case "strengths": color = "blue"; break;
         case "weaknesses": color = "red"; break;
         case "opportunities": color = "green"; break;
         case "threats": color = "yellow"; break;
+        
+        // 3C分析のゾーン
         case "company": color = "blue"; break;
         case "customer": color = "green"; break;
         case "competitor": color = "yellow"; break;
+        
+        // 4P分析のゾーン
         case "product": color = "purple"; break;
         case "price": color = "purple"; break;
         case "place": color = "blue"; break;
         case "promotion": color = "green"; break;
+        
+        // PEST分析のゾーン
         case "political": color = "purple"; break;
         case "economic": color = "blue"; break;
         case "social": color = "green"; break;
         case "technological": color = "blue"; break;
+        
+        // 5Force分析のゾーン
+        case "supplier_power": color = "amber"; break;
+        case "buyer_power": color = "indigo"; break;
+        case "new_entrants": color = "red"; break;
+        case "substitutes": color = "green"; break;
+        case "industry_rivalry": color = "blue"; break;
+        
+        // サプライチェーン分析のゾーン
+        case "suppliers": color = "purple"; break;
+        case "inbound_logistics": color = "blue"; break;
+        case "manufacturing": color = "teal"; break;
+        case "outbound_logistics": color = "cyan"; break;
+        case "customers": color = "green"; break;
+        case "challenges": color = "amber"; break;
+        case "improvements": color = "rose"; break;
+        
+        // バリューチェーン分析のゾーン
+        case "vc_inbound_logistics": color = "blue"; break;
+        case "vc_operations": color = "teal"; break;
+        case "vc_outbound_logistics": color = "cyan"; break;
+        case "vc_marketing_sales": color = "indigo"; break;
+        case "vc_service": color = "violet"; break;
+        case "vc_infrastructure": color = "purple"; break;
+        case "vc_hr_management": color = "pink"; break;
+        case "vc_technology": color = "rose"; break;
+        case "vc_procurement": color = "amber"; break;
+        case "vc_strengths": color = "green"; break;
+        case "vc_improvements": color = "red"; break;
       }
       
       // テキストボックスを追加
@@ -422,6 +458,14 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({
         return ["political", "economic", "social", "technological"];
       case "5force":
         return ["supplier_power", "buyer_power", "new_entrants", "substitutes", "industry_rivalry"];
+      case "supply_chain":
+        return ["suppliers", "inbound_logistics", "manufacturing", "outbound_logistics", "customers", "challenges", "improvements"];
+      case "value_chain":
+        return [
+          "vc_inbound_logistics", "vc_operations", "vc_outbound_logistics", "vc_marketing_sales", "vc_service",
+          "vc_infrastructure", "vc_hr_management", "vc_technology", "vc_procurement",
+          "vc_strengths", "vc_improvements"
+        ];
       default:
         return [];
     }

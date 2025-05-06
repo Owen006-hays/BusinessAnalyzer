@@ -188,6 +188,169 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
           </div>
         </div>
       );
+      
+    case "supply_chain":
+      return (
+        <div className="template-grid h-full flex flex-col pointer-events-none">
+          <div className="flex flex-col h-full">
+            <div className="flex-grow grid grid-cols-1 md:grid-cols-5 gap-4">
+              {/* サプライヤー */}
+              <div className="bg-purple-50 border border-purple-200 rounded p-3 flex flex-col min-h-[180px]">
+                <h3 className="text-purple-700 font-medium text-center border-b border-purple-200 pb-1 mb-2">
+                  サプライヤー
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="suppliers"></div>
+              </div>
+              
+              {/* 調達物流 */}
+              <div className="bg-blue-50 border border-blue-200 rounded p-3 flex flex-col min-h-[180px]">
+                <h3 className="text-blue-700 font-medium text-center border-b border-blue-200 pb-1 mb-2">
+                  調達物流
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="inbound_logistics"></div>
+              </div>
+              
+              {/* 製造 */}
+              <div className="bg-teal-50 border border-teal-200 rounded p-3 flex flex-col min-h-[180px]">
+                <h3 className="text-teal-700 font-medium text-center border-b border-teal-200 pb-1 mb-2">
+                  製造
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="manufacturing"></div>
+              </div>
+              
+              {/* 出荷物流 */}
+              <div className="bg-cyan-50 border border-cyan-200 rounded p-3 flex flex-col min-h-[180px]">
+                <h3 className="text-cyan-700 font-medium text-center border-b border-cyan-200 pb-1 mb-2">
+                  出荷物流
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="outbound_logistics"></div>
+              </div>
+              
+              {/* 顧客 */}
+              <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col min-h-[180px]">
+                <h3 className="text-green-700 font-medium text-center border-b border-green-200 pb-1 mb-2">
+                  顧客
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="customers"></div>
+              </div>
+            </div>
+            
+            {/* 課題・改善点エリア */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-amber-50 border border-amber-200 rounded p-3 flex flex-col min-h-[120px]">
+                <h3 className="text-amber-700 font-medium text-center border-b border-amber-200 pb-1 mb-2">
+                  課題点
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="challenges"></div>
+              </div>
+              
+              <div className="bg-rose-50 border border-rose-200 rounded p-3 flex flex-col min-h-[120px]">
+                <h3 className="text-rose-700 font-medium text-center border-b border-rose-200 pb-1 mb-2">
+                  改善案
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="improvements"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+      
+    case "value_chain":
+      return (
+        <div className="template-grid h-full flex flex-col pointer-events-none">
+          {/* 主活動 */}
+          <div>
+            <h3 className="text-gray-700 font-medium text-center mb-2">主活動 (Primary Activities)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
+              <div className="bg-blue-50 border border-blue-200 rounded p-3 flex flex-col min-h-[140px]">
+                <h3 className="text-blue-700 font-medium text-center border-b border-blue-200 pb-1 mb-2">
+                  調達物流
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vc_inbound_logistics"></div>
+              </div>
+              
+              <div className="bg-teal-50 border border-teal-200 rounded p-3 flex flex-col min-h-[140px]">
+                <h3 className="text-teal-700 font-medium text-center border-b border-teal-200 pb-1 mb-2">
+                  製造業務
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vc_operations"></div>
+              </div>
+              
+              <div className="bg-cyan-50 border border-cyan-200 rounded p-3 flex flex-col min-h-[140px]">
+                <h3 className="text-cyan-700 font-medium text-center border-b border-cyan-200 pb-1 mb-2">
+                  出荷物流
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vc_outbound_logistics"></div>
+              </div>
+              
+              <div className="bg-indigo-50 border border-indigo-200 rounded p-3 flex flex-col min-h-[140px]">
+                <h3 className="text-indigo-700 font-medium text-center border-b border-indigo-200 pb-1 mb-2">
+                  マーケティング・販売
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vc_marketing_sales"></div>
+              </div>
+              
+              <div className="bg-violet-50 border border-violet-200 rounded p-3 flex flex-col min-h-[140px]">
+                <h3 className="text-violet-700 font-medium text-center border-b border-violet-200 pb-1 mb-2">
+                  サービス
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vc_service"></div>
+              </div>
+            </div>
+          </div>
+          
+          {/* 支援活動 */}
+          <div>
+            <h3 className="text-gray-700 font-medium text-center mb-2">支援活動 (Support Activities)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+              <div className="bg-purple-50 border border-purple-200 rounded p-3 flex flex-col min-h-[140px]">
+                <h3 className="text-purple-700 font-medium text-center border-b border-purple-200 pb-1 mb-2">
+                  企業インフラ
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vc_infrastructure"></div>
+              </div>
+              
+              <div className="bg-pink-50 border border-pink-200 rounded p-3 flex flex-col min-h-[140px]">
+                <h3 className="text-pink-700 font-medium text-center border-b border-pink-200 pb-1 mb-2">
+                  人的資源管理
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vc_hr_management"></div>
+              </div>
+              
+              <div className="bg-rose-50 border border-rose-200 rounded p-3 flex flex-col min-h-[140px]">
+                <h3 className="text-rose-700 font-medium text-center border-b border-rose-200 pb-1 mb-2">
+                  技術開発
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vc_technology"></div>
+              </div>
+              
+              <div className="bg-amber-50 border border-amber-200 rounded p-3 flex flex-col min-h-[140px]">
+                <h3 className="text-amber-700 font-medium text-center border-b border-amber-200 pb-1 mb-2">
+                  調達活動
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vc_procurement"></div>
+              </div>
+            </div>
+          </div>
+          
+          {/* 結論と改善点 */}
+          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col min-h-[120px]">
+              <h3 className="text-green-700 font-medium text-center border-b border-green-200 pb-1 mb-2">
+                強みとなる価値活動
+              </h3>
+              <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vc_strengths"></div>
+            </div>
+            
+            <div className="bg-red-50 border border-red-200 rounded p-3 flex flex-col min-h-[120px]">
+              <h3 className="text-red-700 font-medium text-center border-b border-red-200 pb-1 mb-2">
+                改善すべき価値活動
+              </h3>
+              <div className="flex-grow template-dropzone pointer-events-auto" data-zone="vc_improvements"></div>
+            </div>
+          </div>
+        </div>
+      );
 
     default:
       return null;
