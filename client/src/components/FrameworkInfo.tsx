@@ -1,5 +1,5 @@
-import React from "react";
-import { X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { X, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAnalysisContext } from "@/context/AnalysisContext";
 
@@ -10,14 +10,39 @@ interface FrameworkInfoProps {
 
 const FrameworkInfo: React.FC<FrameworkInfoProps> = ({ isOpen, onClose }) => {
   const { currentTemplate } = useAnalysisContext();
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  
+  // 現在のテンプレートに初期化
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedTemplate(currentTemplate);
+    }
+  }, [isOpen, currentTemplate]);
   
   if (!isOpen) return null;
+
+  // 日本語のテンプレート名を取得
+  const getTemplateJapaneseName = (template: string | null) => {
+    switch (template) {
+      case "swot": return "SWOT分析";
+      case "4p": return "4P分析";
+      case "3c": return "3C分析";
+      case "pest": return "PEST分析";
+      case "5force": return "Five Forces分析";
+      case "supply_chain": return "サプライチェーン分析";
+      case "value_chain": return "バリューチェーン分析";
+      case "vrio": return "VRIO分析";
+      default: return "フレームワーク一覧";
+    }
+  };
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-xl font-medium">分析フレームワーク ガイド</h2>
+          <h2 className="text-xl font-medium">
+            分析フレームワーク ガイド：{getTemplateJapaneseName(selectedTemplate)}
+          </h2>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -28,8 +53,98 @@ const FrameworkInfo: React.FC<FrameworkInfoProps> = ({ isOpen, onClose }) => {
           </Button>
         </div>
         
-        <div className="p-6">
-          {getFrameworkContent(currentTemplate)}
+        <div className="flex flex-1 overflow-hidden">
+          {/* サイドバーナビゲーション */}
+          <div className="w-56 border-r border-gray-200 bg-gray-50 py-4 overflow-y-auto">
+            <ul className="space-y-1">
+              <li>
+                <button 
+                  className={`w-full text-left px-4 py-2 flex items-center ${selectedTemplate === null ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-100'}`}
+                  onClick={() => setSelectedTemplate(null)}
+                >
+                  フレームワーク一覧
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                </button>
+              </li>
+              <li>
+                <button 
+                  className={`w-full text-left px-4 py-2 flex items-center ${selectedTemplate === "swot" ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-100'}`}
+                  onClick={() => setSelectedTemplate("swot")}
+                >
+                  SWOT分析
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                </button>
+              </li>
+              <li>
+                <button 
+                  className={`w-full text-left px-4 py-2 flex items-center ${selectedTemplate === "4p" ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-100'}`}
+                  onClick={() => setSelectedTemplate("4p")}
+                >
+                  4P分析
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                </button>
+              </li>
+              <li>
+                <button 
+                  className={`w-full text-left px-4 py-2 flex items-center ${selectedTemplate === "3c" ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-100'}`}
+                  onClick={() => setSelectedTemplate("3c")}
+                >
+                  3C分析
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                </button>
+              </li>
+              <li>
+                <button 
+                  className={`w-full text-left px-4 py-2 flex items-center ${selectedTemplate === "pest" ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-100'}`}
+                  onClick={() => setSelectedTemplate("pest")}
+                >
+                  PEST分析
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                </button>
+              </li>
+              <li>
+                <button 
+                  className={`w-full text-left px-4 py-2 flex items-center ${selectedTemplate === "5force" ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-100'}`}
+                  onClick={() => setSelectedTemplate("5force")}
+                >
+                  Five Forces分析
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                </button>
+              </li>
+              <li>
+                <button 
+                  className={`w-full text-left px-4 py-2 flex items-center ${selectedTemplate === "supply_chain" ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-100'}`}
+                  onClick={() => setSelectedTemplate("supply_chain")}
+                >
+                  サプライチェーン分析
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                </button>
+              </li>
+              <li>
+                <button 
+                  className={`w-full text-left px-4 py-2 flex items-center ${selectedTemplate === "value_chain" ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-100'}`}
+                  onClick={() => setSelectedTemplate("value_chain")}
+                >
+                  バリューチェーン分析
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                </button>
+              </li>
+              <li>
+                <button 
+                  className={`w-full text-left px-4 py-2 flex items-center ${selectedTemplate === "vrio" ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-100'}`}
+                  onClick={() => setSelectedTemplate("vrio")}
+                >
+                  VRIO分析
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                </button>
+              </li>
+            </ul>
+          </div>
+          
+          {/* コンテンツエリア */}
+          <div className="flex-1 p-6 overflow-y-auto">
+            {getFrameworkContent(selectedTemplate)}
+          </div>
         </div>
       </div>
     </div>
