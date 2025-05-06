@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, Plus, Save, FileDown, LayoutTemplate, FileText, Image, HelpCircle, RotateCcw, History } from "lucide-react";
 import {
@@ -25,6 +25,7 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
     saveAnalysis, 
     autoSaveAnalysis,
     loadAutosave,
+    checkForAutosave,
     exportAsImage,
     exportAsPDF,
     analysisName,
@@ -33,6 +34,17 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
   const [showFrameworkInfo, setShowFrameworkInfo] = useState(false);
+  const [hasAutosave, setHasAutosave] = useState(false);
+  
+  // 自動保存があるか確認
+  useEffect(() => {
+    const checkAutosave = async () => {
+      const autosave = await checkForAutosave();
+      setHasAutosave(!!autosave);
+    };
+    
+    checkAutosave();
+  }, [checkForAutosave]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -146,6 +158,58 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
       setIsExporting(false);
     }
   };
+  
+  // 自動保存を実行
+  const handleAutoSave = async () => {
+    try {
+      // 処理開始のトーストを表示
+      toast({
+        title: "自動保存中...",
+        description: "分析データを自動保存しています。",
+      });
+      
+      await autoSaveAnalysis();
+      
+      setHasAutosave(true);
+      
+      toast({
+        title: "自動保存完了",
+        description: "分析データが自動保存されました",
+      });
+    } catch (error) {
+      console.error("Error auto-saving:", error);
+      toast({
+        title: "自動保存失敗",
+        description: "自動保存できませんでした",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // 自動保存から復元する
+  const handleLoadAutosave = async () => {
+    try {
+      // 処理開始のトーストを表示
+      toast({
+        title: "自動保存データ読込中...",
+        description: "最後の自動保存から復元しています。",
+      });
+      
+      await loadAutosave();
+      
+      toast({
+        title: "復元完了",
+        description: "自動保存データから復元しました",
+      });
+    } catch (error) {
+      console.error("Error loading autosave:", error);
+      toast({
+        title: "復元失敗",
+        description: "自動保存データから復元できませんでした",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <header className="bg-white border-b border-secondary px-4 py-2 flex flex-col md:flex-row items-center justify-between shadow-sm">
@@ -250,10 +314,52 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleSaveAnalysis}>
-              <Save className="h-4 w-4 mr-2" />
-              分析を保存
+            <DropdownMenuItem onClick={handleSaveAnalysis} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                  保存中...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  分析を保存
+                </>
+              )}
             </DropdownMenuItem>
+            
+            <DropdownMenuItem onClick={handleAutoSave} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                  自動保存中...
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  自動保存
+                </>
+              )}
+            </DropdownMenuItem>
+            
+            {hasAutosave && (
+              <DropdownMenuItem onClick={handleLoadAutosave} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                    復元中...
+                  </>
+                ) : (
+                  <>
+                    <History className="h-4 w-4 mr-2" />
+                    自動保存から復元
+                  </>
+                )}
+              </DropdownMenuItem>
+            )}
+            
+            <DropdownMenuSeparator />
+            
             <DropdownMenuItem onClick={handleExportImage} disabled={isExporting}>
               {isExporting ? (
                 <>
