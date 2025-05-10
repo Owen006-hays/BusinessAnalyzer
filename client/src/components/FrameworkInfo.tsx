@@ -882,6 +882,44 @@ function getFrameworkContent(templateName: string | null) {
           </p>
         </div>
       );
+    
+    case "bmc":
+      return (
+        <div>
+          <h3 className="text-lg font-medium mb-2">ビジネスモデルキャンバス</h3>
+          <p className="mb-4">
+            ビジネスモデルキャンバスは、ビジネスモデルを9つの要素で構造化して可視化するためのフレームワークです。
+            組織がどのように価値を創造し、提供し、獲得するかを包括的に理解するのに役立ちます。
+          </p>
+          <ul className="list-disc pl-5 space-y-2 mb-4">
+            <li><span className="font-medium">顧客セグメント (Customer Segments)</span> - サービスを提供する対象となる顧客グループ</li>
+            <li><span className="font-medium">価値提案 (Value Propositions)</span> - 顧客の問題を解決し、ニーズを満たす製品やサービス</li>
+            <li><span className="font-medium">チャネル (Channels)</span> - 顧客に価値提案を伝え、製品やサービスを届ける方法</li>
+            <li><span className="font-medium">顧客との関係 (Customer Relationships)</span> - 各顧客セグメントとの関係性</li>
+            <li><span className="font-medium">収益の流れ (Revenue Streams)</span> - 顧客から生み出される収益</li>
+            <li><span className="font-medium">主要リソース (Key Resources)</span> - ビジネスモデルを機能させるために必要な資産</li>
+            <li><span className="font-medium">主要活動 (Key Activities)</span> - ビジネスモデルを機能させるために行うべき最も重要な活動</li>
+            <li><span className="font-medium">キーパートナー (Key Partners)</span> - ビジネスモデルを機能させるための外部協力者やサプライヤー</li>
+            <li><span className="font-medium">コスト構造 (Cost Structure)</span> - ビジネスモデルの運営にかかるすべてのコスト</li>
+          </ul>
+          
+          <div className="bg-gray-50 p-3 rounded-md text-sm mb-4">
+            <p className="font-medium mb-1">ビジネスモデルキャンバスの特徴：</p>
+            <ul className="list-disc pl-5 text-gray-700">
+              <li>ビジネスモデル全体を一目で把握できる</li>
+              <li>各要素の関連性を視覚的に理解できる</li>
+              <li>新しいビジネスモデルの設計や既存モデルの改善に役立つ</li>
+              <li>チーム内でビジネスの核となる概念を共有しやすくなる</li>
+            </ul>
+          </div>
+          
+          <p className="text-sm text-gray-600 mt-3">
+            ビジネスモデルキャンバスは、スタートアップから大企業まで、あらゆる規模の組織に適用可能です。
+            このフレームワークを使うことで、ビジネスモデルの強みと弱みを特定し、革新的な方向性を見出すことができます。
+            各ブロックは相互に関連しており、一つの変更が他の要素にも影響することを理解することが重要です。
+          </p>
+        </div>
+      );
       
     default:
       return (
