@@ -138,6 +138,15 @@ const FrameworkInfo: React.FC<FrameworkInfoProps> = ({ isOpen, onClose }) => {
                   <ChevronRight className="ml-auto h-4 w-4" />
                 </button>
               </li>
+              <li>
+                <button 
+                  className={`w-full text-left px-4 py-2 flex items-center ${selectedTemplate === "bmc" ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-100'}`}
+                  onClick={() => setSelectedTemplate("bmc")}
+                >
+                  ビジネスモデルキャンバス
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                </button>
+              </li>
             </ul>
           </div>
           
