@@ -428,7 +428,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
                 <div className="flex-grow template-dropzone pointer-events-auto" data-zone="key_activities"></div>
               </div>
               
-              <div className="md:col-span-1 md:row-span-3 bg-teal-50 border border-teal-200 rounded p-3 flex flex-col min-h-[240px]">
+              <div className="md:col-span-1 md:row-span-2 bg-teal-50 border border-teal-200 rounded p-3 flex flex-col min-h-[160px]">
                 <h3 className="text-teal-700 font-medium text-center border-b border-teal-200 pb-1 mb-2">
                   価値提案
                 </h3>
@@ -465,14 +465,14 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
               </div>
               
               {/* 下段: コスト構造、収益の流れ */}
-              <div className="md:col-span-2 bg-amber-50 border border-amber-200 rounded p-3 flex flex-col min-h-[120px]">
+              <div className="md:col-span-2 md:row-span-1 bg-amber-50 border border-amber-200 rounded p-3 flex flex-col min-h-[120px]">
                 <h3 className="text-amber-700 font-medium text-center border-b border-amber-200 pb-1 mb-2">
                   コスト構造
                 </h3>
                 <div className="flex-grow template-dropzone pointer-events-auto" data-zone="cost_structure"></div>
               </div>
               
-              <div className="md:col-span-2 bg-rose-50 border border-rose-200 rounded p-3 flex flex-col min-h-[120px]">
+              <div className="md:col-span-3 md:row-span-1 bg-rose-50 border border-rose-200 rounded p-3 flex flex-col min-h-[120px]">
                 <h3 className="text-rose-700 font-medium text-center border-b border-rose-200 pb-1 mb-2">
                   収益の流れ
                 </h3>
