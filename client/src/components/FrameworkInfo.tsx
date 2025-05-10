@@ -32,6 +32,7 @@ const FrameworkInfo: React.FC<FrameworkInfoProps> = ({ isOpen, onClose }) => {
       case "supply_chain": return "サプライチェーン分析";
       case "value_chain": return "バリューチェーン分析";
       case "vrio": return "VRIO分析";
+      case "bmc": return "ビジネスモデルキャンバス";
       default: return "フレームワーク一覧";
     }
   };
