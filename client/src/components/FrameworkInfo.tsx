@@ -149,6 +149,15 @@ const FrameworkInfo: React.FC<FrameworkInfoProps> = ({ isOpen, onClose }) => {
                   <ChevronRight className="ml-auto h-4 w-4" />
                 </button>
               </li>
+              <li>
+                <button 
+                  className={`w-full text-left px-4 py-2 flex items-center ${selectedTemplate === "lean" ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-100'}`}
+                  onClick={() => setSelectedTemplate("lean")}
+                >
+                  リーンキャンバス
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                </button>
+              </li>
             </ul>
           </div>
           
@@ -918,6 +927,45 @@ function getFrameworkContent(templateName: string | null) {
             ビジネスモデルキャンバスは、スタートアップから大企業まで、あらゆる規模の組織に適用可能です。
             このフレームワークを使うことで、ビジネスモデルの強みと弱みを特定し、革新的な方向性を見出すことができます。
             各ブロックは相互に関連しており、一つの変更が他の要素にも影響することを理解することが重要です。
+          </p>
+        </div>
+      );
+      
+    case "lean":
+      return (
+        <div>
+          <h3 className="text-lg font-medium mb-2">リーンキャンバス</h3>
+          <p className="mb-4">
+            リーンキャンバスは、スタートアップ向けのビジネスモデル可視化ツールで、ビジネスモデルキャンバスを簡略化し、
+            起業家がアイデアを素早く検証できるように設計されています。
+          </p>
+          <ul className="list-disc pl-5 space-y-2 mb-4">
+            <li><span className="font-medium">解決すべき問題 (Problem)</span> - 顧客が抱える上位3つの問題</li>
+            <li><span className="font-medium">顧客セグメント (Customer Segments)</span> - ターゲットとなる顧客層</li>
+            <li><span className="font-medium">独自の価値提案 (Unique Value Proposition)</span> - なぜあなたが特別で、なぜ顧客の注目に値するか</li>
+            <li><span className="font-medium">解決策 (Solution)</span> - 各問題に対する解決策の概要</li>
+            <li><span className="font-medium">チャネル (Channels)</span> - 顧客にリーチする経路</li>
+            <li><span className="font-medium">収益の流れ (Revenue Streams)</span> - 収益モデル、顧客の支払い意欲を決める価値</li>
+            <li><span className="font-medium">コスト構造 (Cost Structure)</span> - 固定費と変動費、初期投資</li>
+            <li><span className="font-medium">主要指標 (Key Metrics)</span> - ビジネスの健全性を測る重要な数値</li>
+            <li><span className="font-medium">圧倒的な優位性 (Unfair Advantage)</span> - 簡単に複製や買収ができない競争優位性</li>
+          </ul>
+          
+          <div className="bg-gray-50 p-3 rounded-md text-sm mb-4">
+            <p className="font-medium mb-1">リーンキャンバスの活用ステップ：</p>
+            <ol className="list-decimal pl-5 text-gray-700">
+              <li>顧客セグメントと解決すべき問題を明確にする</li>
+              <li>それぞれの問題に対する解決策を考える</li>
+              <li>独自の価値提案を明確に定義する</li>
+              <li>ビジネスモデルの収益構造とコスト構造を設計する</li>
+              <li>主要指標と圧倒的な優位性を特定する</li>
+            </ol>
+          </div>
+          
+          <p className="text-sm text-gray-600 mt-3">
+            リーンキャンバスは、リーンスタートアップ手法の一部として、最小限の労力で仮説検証を行い、
+            市場フィードバックを素早く得るためのツールです。
+            不確実性が高い環境で、最小限の投資でビジネスモデルを検証し、ピボット（方向転換）や継続の判断を支援します。
           </p>
         </div>
       );
