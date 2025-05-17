@@ -412,71 +412,68 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
       return (
         <div className="template-grid h-full flex flex-col pointer-events-none">
           <div className="flex flex-col h-full">
-            {/* 全体をh-fullで確保し、グリッド定義を見直し */}
-            <div className="h-full grid grid-cols-1 md:grid-cols-20 md:grid-rows-20 gap-3">
-              {/* 上段: 左側2/5, 中央1/5, 右側2/5の幅で配置 */}
-              <div className="md:col-span-4 md:row-span-7 bg-purple-50 border border-purple-200 rounded p-3 flex flex-col">
+            {/* Canvanizerのレイアウトに合わせた標準的なビジネスモデルキャンバス */}
+            <div className="h-full grid grid-cols-1 md:grid-cols-10 md:grid-rows-10 gap-3">
+              {/* 上段：キーパートナー、主要活動、価値提案、顧客との関係、顧客セグメント */}
+              <div className="md:col-span-2 md:row-span-6 bg-purple-50 border border-purple-200 rounded p-3 flex flex-col">
                 <h3 className="text-purple-700 font-medium text-center border-b border-purple-200 pb-1 mb-2">
                   キーパートナー
                 </h3>
                 <div className="flex-grow template-dropzone pointer-events-auto" data-zone="key_partners"></div>
               </div>
-
-              {/* 中段左：主要活動と経営資源 */}
-              <div className="md:col-span-4 md:row-span-3 bg-blue-50 border border-blue-200 rounded p-3 flex flex-col">
+              
+              <div className="md:col-span-2 md:row-span-3 bg-blue-50 border border-blue-200 rounded p-3 flex flex-col">
                 <h3 className="text-blue-700 font-medium text-center border-b border-blue-200 pb-1 mb-2">
                   主要活動
                 </h3>
                 <div className="flex-grow template-dropzone pointer-events-auto" data-zone="key_activities"></div>
               </div>
               
-              <div className="md:col-span-4 md:row-span-3 bg-cyan-50 border border-cyan-200 rounded p-3 flex flex-col">
-                <h3 className="text-cyan-700 font-medium text-center border-b border-cyan-200 pb-1 mb-2">
-                  経営資源
-                </h3>
-                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="key_resources"></div>
-              </div>
-              
-              {/* 中央の価値提案 */}
-              <div className="md:col-span-8 md:row-span-7 bg-teal-50 border border-teal-200 rounded p-3 flex flex-col">
+              <div className="md:col-span-4 md:row-span-6 bg-teal-50 border border-teal-200 rounded p-3 flex flex-col">
                 <h3 className="text-teal-700 font-medium text-center border-b border-teal-200 pb-1 mb-2">
                   価値提案
                 </h3>
                 <div className="flex-grow template-dropzone pointer-events-auto" data-zone="value_propositions"></div>
               </div>
               
-              {/* 中段右：顧客との関係とチャネル */}
-              <div className="md:col-span-4 md:row-span-3 bg-indigo-50 border border-indigo-200 rounded p-3 flex flex-col">
+              <div className="md:col-span-2 md:row-span-3 bg-indigo-50 border border-indigo-200 rounded p-3 flex flex-col">
                 <h3 className="text-indigo-700 font-medium text-center border-b border-indigo-200 pb-1 mb-2">
                   顧客との関係
                 </h3>
                 <div className="flex-grow template-dropzone pointer-events-auto" data-zone="customer_relationships"></div>
               </div>
               
-              <div className="md:col-span-4 md:row-span-3 bg-pink-50 border border-pink-200 rounded p-3 flex flex-col">
-                <h3 className="text-pink-700 font-medium text-center border-b border-pink-200 pb-1 mb-2">
-                  チャネル
-                </h3>
-                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="channels"></div>
-              </div>
-              
-              {/* 右側：顧客セグメント */}
-              <div className="md:col-span-4 md:row-span-7 bg-green-50 border border-green-200 rounded p-3 flex flex-col">
+              <div className="md:col-span-2 md:row-span-6 bg-green-50 border border-green-200 rounded p-3 flex flex-col">
                 <h3 className="text-green-700 font-medium text-center border-b border-green-200 pb-1 mb-2">
                   顧客セグメント
                 </h3>
                 <div className="flex-grow template-dropzone pointer-events-auto" data-zone="customer_segments"></div>
               </div>
               
-              {/* 下段: コスト構造と収益の流れ */}
-              <div className="md:col-span-8 md:row-span-5 bg-amber-50 border border-amber-200 rounded p-3 flex flex-col">
+              {/* 中段：経営資源、チャネル */}
+              <div className="md:col-span-2 md:row-span-3 bg-cyan-50 border border-cyan-200 rounded p-3 flex flex-col">
+                <h3 className="text-cyan-700 font-medium text-center border-b border-cyan-200 pb-1 mb-2">
+                  経営資源
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="key_resources"></div>
+              </div>
+              
+              <div className="md:col-span-2 md:row-span-3 bg-pink-50 border border-pink-200 rounded p-3 flex flex-col">
+                <h3 className="text-pink-700 font-medium text-center border-b border-pink-200 pb-1 mb-2">
+                  チャネル
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="channels"></div>
+              </div>
+              
+              {/* 下段：コスト構造と収益の流れ */}
+              <div className="md:col-span-5 md:row-span-4 bg-amber-50 border border-amber-200 rounded p-3 flex flex-col">
                 <h3 className="text-amber-700 font-medium text-center border-b border-amber-200 pb-1 mb-2">
                   コスト構造
                 </h3>
                 <div className="flex-grow template-dropzone pointer-events-auto" data-zone="cost_structure"></div>
               </div>
               
-              <div className="md:col-span-12 md:row-span-5 bg-rose-50 border border-rose-200 rounded p-3 flex flex-col">
+              <div className="md:col-span-5 md:row-span-4 bg-rose-50 border border-rose-200 rounded p-3 flex flex-col">
                 <h3 className="text-rose-700 font-medium text-center border-b border-rose-200 pb-1 mb-2">
                   収益の流れ
                 </h3>
