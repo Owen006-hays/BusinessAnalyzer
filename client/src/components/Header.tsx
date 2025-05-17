@@ -275,6 +275,9 @@ const Header: React.FC<HeaderProps> = ({ onPdfUpload, onImageDisplay }) => {
             <DropdownMenuItem onClick={() => setCurrentTemplate("lean")}>
               リーンキャンバス
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setCurrentTemplate("customer_journey")}>
+              カスタマージャーニーキャンバス
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setCurrentTemplate(null)}>
               フリーキャンバス
             </DropdownMenuItem>

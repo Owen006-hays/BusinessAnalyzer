@@ -562,6 +562,142 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
           </div>
         </div>
       );
+    
+    case "customer_journey":
+      return (
+        <div className="template-grid h-full flex flex-col pointer-events-none">
+          <div className="flex flex-col h-full">
+            {/* ステージ（フェーズ）のヘッダー行 */}
+            <div className="grid grid-cols-5 gap-2 mb-3">
+              <div className="bg-blue-100 rounded p-2 text-center text-blue-800 font-medium">
+                認知
+              </div>
+              <div className="bg-indigo-100 rounded p-2 text-center text-indigo-800 font-medium">
+                検討
+              </div>
+              <div className="bg-purple-100 rounded p-2 text-center text-purple-800 font-medium">
+                購入
+              </div>
+              <div className="bg-pink-100 rounded p-2 text-center text-pink-800 font-medium">
+                サービス利用
+              </div>
+              <div className="bg-rose-100 rounded p-2 text-center text-rose-800 font-medium">
+                ロイヤル化
+              </div>
+            </div>
+            
+            {/* 顧客の行動 */}
+            <div className="grid grid-cols-5 gap-2 mb-3">
+              <div className="bg-gray-50 border border-gray-200 rounded p-3 flex flex-col min-h-[100px]">
+                <h3 className="text-gray-700 font-medium text-center border-b border-gray-200 pb-1 mb-2">
+                  行動
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="awareness_doing"></div>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="consideration_doing"></div>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="purchase_doing"></div>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="service_doing"></div>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="loyalty_doing"></div>
+              </div>
+            </div>
+            
+            {/* 顧客の思考 */}
+            <div className="grid grid-cols-5 gap-2 mb-3">
+              <div className="bg-blue-50 border border-blue-200 rounded p-3 flex flex-col min-h-[100px]">
+                <h3 className="text-blue-700 font-medium text-center border-b border-blue-200 pb-1 mb-2">
+                  思考
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="awareness_thinking"></div>
+              </div>
+              <div className="bg-indigo-50 border border-indigo-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="consideration_thinking"></div>
+              </div>
+              <div className="bg-purple-50 border border-purple-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="purchase_thinking"></div>
+              </div>
+              <div className="bg-pink-50 border border-pink-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="service_thinking"></div>
+              </div>
+              <div className="bg-rose-50 border border-rose-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="loyalty_thinking"></div>
+              </div>
+            </div>
+            
+            {/* 顧客の感情 */}
+            <div className="grid grid-cols-5 gap-2 mb-3">
+              <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col min-h-[100px]">
+                <h3 className="text-green-700 font-medium text-center border-b border-green-200 pb-1 mb-2">
+                  感情
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="awareness_feeling"></div>
+              </div>
+              <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="consideration_feeling"></div>
+              </div>
+              <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="purchase_feeling"></div>
+              </div>
+              <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="service_feeling"></div>
+              </div>
+              <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="loyalty_feeling"></div>
+              </div>
+            </div>
+            
+            {/* タッチポイント */}
+            <div className="grid grid-cols-5 gap-2 mb-3">
+              <div className="bg-amber-50 border border-amber-200 rounded p-3 flex flex-col min-h-[100px]">
+                <h3 className="text-amber-700 font-medium text-center border-b border-amber-200 pb-1 mb-2">
+                  タッチポイント
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="awareness_touchpoints"></div>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="consideration_touchpoints"></div>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="purchase_touchpoints"></div>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="service_touchpoints"></div>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="loyalty_touchpoints"></div>
+              </div>
+            </div>
+            
+            {/* 課題と機会 */}
+            <div className="grid grid-cols-5 gap-2">
+              <div className="bg-red-50 border border-red-200 rounded p-3 flex flex-col min-h-[100px]">
+                <h3 className="text-red-700 font-medium text-center border-b border-red-200 pb-1 mb-2">
+                  課題と機会
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="awareness_opportunities"></div>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="consideration_opportunities"></div>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="purchase_opportunities"></div>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="service_opportunities"></div>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded p-3 flex flex-col min-h-[100px]">
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="loyalty_opportunities"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
 
     default:
       return null;

@@ -34,6 +34,7 @@ const FrameworkInfo: React.FC<FrameworkInfoProps> = ({ isOpen, onClose }) => {
       case "vrio": return "VRIO分析";
       case "bmc": return "ビジネスモデルキャンバス";
       case "lean": return "リーンキャンバス";
+      case "customer_journey": return "カスタマージャーニーキャンバス";
       default: return "フレームワーク一覧";
     }
   };
@@ -155,6 +156,15 @@ const FrameworkInfo: React.FC<FrameworkInfoProps> = ({ isOpen, onClose }) => {
                   onClick={() => setSelectedTemplate("lean")}
                 >
                   リーンキャンバス
+                  <ChevronRight className="ml-auto h-4 w-4" />
+                </button>
+              </li>
+              <li>
+                <button 
+                  className={`w-full text-left px-4 py-2 flex items-center ${selectedTemplate === "customer_journey" ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-100'}`}
+                  onClick={() => setSelectedTemplate("customer_journey")}
+                >
+                  カスタマージャーニーキャンバス
                   <ChevronRight className="ml-auto h-4 w-4" />
                 </button>
               </li>
@@ -966,6 +976,54 @@ function getFrameworkContent(templateName: string | null) {
             リーンキャンバスは、リーンスタートアップ手法の一部として、最小限の労力で仮説検証を行い、
             市場フィードバックを素早く得るためのツールです。
             不確実性が高い環境で、最小限の投資でビジネスモデルを検証し、ピボット（方向転換）や継続の判断を支援します。
+          </p>
+        </div>
+      );
+    
+    case "customer_journey":
+      return (
+        <div>
+          <h3 className="text-lg font-medium mb-2">カスタマージャーニーキャンバス</h3>
+          <p className="mb-4">
+            カスタマージャーニーキャンバスは、顧客が製品やサービスと関わる一連の体験（ジャーニー）を
+            時系列で可視化するためのフレームワークです。顧客視点に立ったサービス設計や改善に役立ちます。
+          </p>
+          <ul className="list-disc pl-5 space-y-2 mb-4">
+            <li><span className="font-medium">認知 (Awareness)</span> - 顧客がブランドや製品・サービスの存在を知る段階</li>
+            <li><span className="font-medium">検討 (Consideration)</span> - 顧客が製品・サービスについて調査し検討する段階</li>
+            <li><span className="font-medium">購入 (Purchase)</span> - 顧客が製品・サービスを購入する段階</li>
+            <li><span className="font-medium">サービス利用 (Service)</span> - 顧客が製品・サービスを使用する段階</li>
+            <li><span className="font-medium">ロイヤル化 (Loyalty)</span> - 顧客がリピーターやファンになる段階</li>
+          </ul>
+          
+          <p className="mb-4">
+            各段階において以下の要素を分析し、マッピングします：
+          </p>
+          
+          <ul className="list-disc pl-5 space-y-2 mb-4">
+            <li><span className="font-medium">行動 (Doing)</span> - 顧客が各段階で行う具体的な行動</li>
+            <li><span className="font-medium">思考 (Thinking)</span> - 顧客の内面の思考やニーズ</li>
+            <li><span className="font-medium">感情 (Feeling)</span> - 顧客が各段階で抱く感情や心理状態</li>
+            <li><span className="font-medium">タッチポイント (Touchpoints)</span> - 顧客と企業の接点（Webサイト、店舗、広告など）</li>
+            <li><span className="font-medium">課題と機会 (Pain Points & Opportunities)</span> - 改善が必要な点と新たな機会</li>
+          </ul>
+          
+          <div className="bg-gray-50 p-3 rounded-md text-sm mb-4">
+            <p className="font-medium mb-1">カスタマージャーニーキャンバスの活用ステップ：</p>
+            <ol className="list-decimal pl-5 text-gray-700">
+              <li>分析対象となる顧客ペルソナを特定する</li>
+              <li>カスタマージャーニーの全体的なステージ（フェーズ）を設定する</li>
+              <li>各ステージでの顧客の行動、思考、感情を記録する</li>
+              <li>各ステージでのタッチポイントを特定する</li>
+              <li>課題点や改善機会を洗い出す</li>
+              <li>優先順位の高い改善点に対する解決策を開発する</li>
+            </ol>
+          </div>
+          
+          <p className="text-sm text-gray-600 mt-3">
+            カスタマージャーニーキャンバスを活用することで、顧客体験の全体像を把握し、
+            製品やサービスの改善点を特定できます。また、チーム内で顧客視点の理解を共有し、
+            より顧客中心のサービス設計や意思決定を行うことができます。
           </p>
         </div>
       );
