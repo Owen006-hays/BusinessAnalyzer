@@ -484,6 +484,84 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
           </div>
         </div>
       );
+      
+    case "lean":
+      return (
+        <div className="template-grid h-full flex flex-col pointer-events-none">
+          <div className="flex flex-col h-full">
+            <div className="flex-grow grid grid-cols-1 md:grid-cols-2 grid-rows-auto md:grid-rows-3 gap-3">
+              {/* 左上: 問題と解決策 */}
+              <div className="md:row-span-1 bg-red-50 border border-red-200 rounded p-3 flex flex-col min-h-[120px]">
+                <h3 className="text-red-700 font-medium text-center border-b border-red-200 pb-1 mb-2">
+                  解決すべき問題
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="problem"></div>
+              </div>
+              
+              <div className="md:row-span-1 bg-green-50 border border-green-200 rounded p-3 flex flex-col min-h-[120px]">
+                <h3 className="text-green-700 font-medium text-center border-b border-green-200 pb-1 mb-2">
+                  解決策
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="solution"></div>
+              </div>
+              
+              {/* 左中: 主要指標とユニークバリュー */}
+              <div className="md:row-span-1 bg-blue-50 border border-blue-200 rounded p-3 flex flex-col min-h-[120px]">
+                <h3 className="text-blue-700 font-medium text-center border-b border-blue-200 pb-1 mb-2">
+                  主要指標
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="key_metrics"></div>
+              </div>
+              
+              <div className="md:row-span-1 bg-purple-50 border border-purple-200 rounded p-3 flex flex-col min-h-[120px]">
+                <h3 className="text-purple-700 font-medium text-center border-b border-purple-200 pb-1 mb-2">
+                  独自の価値提案
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="unique_value"></div>
+              </div>
+              
+              {/* 左下: アンフェアアドバンテージ、右下: チャネル */}
+              <div className="md:row-span-1 bg-amber-50 border border-amber-200 rounded p-3 flex flex-col min-h-[120px]">
+                <h3 className="text-amber-700 font-medium text-center border-b border-amber-200 pb-1 mb-2">
+                  圧倒的な優位性
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="unfair_advantage"></div>
+              </div>
+              
+              <div className="md:row-span-1 bg-indigo-50 border border-indigo-200 rounded p-3 flex flex-col min-h-[120px]">
+                <h3 className="text-indigo-700 font-medium text-center border-b border-indigo-200 pb-1 mb-2">
+                  チャネル
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="channels"></div>
+              </div>
+            </div>
+            
+            {/* 下段: 顧客セグメント、コスト構造、収益の流れ */}
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-5 gap-3">
+              <div className="md:col-span-1 bg-cyan-50 border border-cyan-200 rounded p-3 flex flex-col min-h-[120px]">
+                <h3 className="text-cyan-700 font-medium text-center border-b border-cyan-200 pb-1 mb-2">
+                  顧客セグメント
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="customer_segments"></div>
+              </div>
+              
+              <div className="md:col-span-2 bg-pink-50 border border-pink-200 rounded p-3 flex flex-col min-h-[120px]">
+                <h3 className="text-pink-700 font-medium text-center border-b border-pink-200 pb-1 mb-2">
+                  コスト構造
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="cost_structure"></div>
+              </div>
+              
+              <div className="md:col-span-2 bg-rose-50 border border-rose-200 rounded p-3 flex flex-col min-h-[120px]">
+                <h3 className="text-rose-700 font-medium text-center border-b border-rose-200 pb-1 mb-2">
+                  収益の流れ
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="revenue_streams"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
 
     default:
       return null;
