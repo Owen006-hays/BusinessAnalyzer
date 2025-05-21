@@ -35,6 +35,7 @@ const FrameworkInfo: React.FC<FrameworkInfoProps> = ({ isOpen, onClose }) => {
       case "bmc": return "ビジネスモデルキャンバス";
       case "lean": return "リーンキャンバス";
       case "customer_journey": return "カスタマージャーニーキャンバス";
+      case "design_thinking": return "デザイン思考フレームワーク";
       default: return "フレームワーク一覧";
     }
   };
@@ -282,6 +283,73 @@ function getFrameworkContent(templateName: string | null) {
             4つの要素はそれぞれが独立しているのではなく、互いに影響し合う関係にあります。
             効果的なマーケティング戦略を立てるためには、これら4つの要素のバランスを考慮することが重要です。
             近年ではデジタル化に伴い、4CやSTPなど顧客視点を重視した派生フレームワークも活用されています。
+          </p>
+        </div>
+      );
+    
+    case "design_thinking":
+      return (
+        <div>
+          <h3 className="text-lg font-medium mb-2">デザイン思考フレームワーク</h3>
+          <p className="mb-4">
+            デザイン思考は、人間中心のイノベーションプロセスで、複雑な問題を解決し、革新的なソリューションを生み出すための体系的なアプローチです。
+            スタンフォード大学のd.schoolによって普及した方法論で、5つの連続するステージから構成されています。
+          </p>
+          
+          <div className="space-y-4 mb-4">
+            <div className="bg-blue-50 p-3 rounded border border-blue-200">
+              <h4 className="font-medium text-blue-700">1. 共感 (Empathize)</h4>
+              <p className="text-sm mt-1">
+                ユーザーの視点から問題を理解するステージです。観察、インタビュー、体験を通じて、
+                ユーザーのニーズ、動機、行動パターンを深く理解します。この段階では判断を保留し、
+                先入観を捨ててユーザーの立場に立つことが重要です。
+              </p>
+            </div>
+            
+            <div className="bg-indigo-50 p-3 rounded border border-indigo-200">
+              <h4 className="font-medium text-indigo-700">2. 問題定義 (Define)</h4>
+              <p className="text-sm mt-1">
+                収集した情報を分析し、解決すべき本質的な問題を明確にします。
+                「〜というユーザーは〜という理由で〜を必要としている」という形で、
+                具体的な問題ステートメントを作成します。この問題定義が以降のプロセスの指針となります。
+              </p>
+            </div>
+            
+            <div className="bg-purple-50 p-3 rounded border border-purple-200">
+              <h4 className="font-medium text-purple-700">3. 創造 (Ideate)</h4>
+              <p className="text-sm mt-1">
+                問題に対する多様な解決策を生み出すステージです。
+                ブレインストーミングなどの手法を用いて、量を重視した発想を行います。
+                批判を避け、奇抜なアイデアも含めて可能な限り多くの選択肢を検討することが重要です。
+              </p>
+            </div>
+            
+            <div className="bg-pink-50 p-3 rounded border border-pink-200">
+              <h4 className="font-medium text-pink-700">4. プロトタイプ (Prototype)</h4>
+              <p className="text-sm mt-1">
+                アイデアを形にするステージです。低コストで素早く作成できる簡易的な
+                モデルやモックアップを作り、アイデアを視覚化・具体化します。
+                完璧を求めず、素早くフィードバックを得られる形で作成することが大切です。
+              </p>
+            </div>
+            
+            <div className="bg-rose-50 p-3 rounded border border-rose-200">
+              <h4 className="font-medium text-rose-700">5. テスト (Test)</h4>
+              <p className="text-sm mt-1">
+                プロトタイプをユーザーに試してもらい、フィードバックを集めるステージです。
+                実際の使用状況を観察し、改善点を特定します。
+                必要に応じて問題定義に戻ったり、新たなアイデアやプロトタイプの作成を行うなど、
+                反復的にプロセスを進めていきます。
+              </p>
+            </div>
+          </div>
+          
+          <p className="text-sm text-gray-600">
+            デザイン思考の特徴は、線形ではなく反復的なプロセスであることです。
+            各ステージで得られた学びをもとに、必要に応じて前のステージに戻り
+            プロセスを繰り返すことで、より良いソリューションへと進化させていきます。
+            また、多様な専門性を持つチームでの協働を重視し、異なる視点からの
+            アイデアやフィードバックを取り入れることで、イノベーションを促進します。
           </p>
         </div>
       );
