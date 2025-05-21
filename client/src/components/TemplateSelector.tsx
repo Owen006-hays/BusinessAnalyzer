@@ -697,6 +697,92 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({ template }) => {
           </div>
         </div>
       );
+      
+    case "design_thinking":
+      return (
+        <div className="template-grid h-full flex flex-col pointer-events-none">
+          <div className="flex flex-col h-full">
+            <div className="h-full grid grid-cols-1 md:grid-cols-5 md:grid-rows-2 gap-4">
+              {/* デザイン思考の5つのステージを均等に配置 */}
+              <div className="md:col-span-1 bg-blue-50 border border-blue-200 rounded p-3 flex flex-col">
+                <h3 className="text-blue-700 font-medium text-center border-b border-blue-200 pb-1 mb-2">
+                  共感
+                </h3>
+                <p className="text-xs text-gray-500 mb-2 text-center">Empathize</p>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="empathize"></div>
+              </div>
+              
+              <div className="md:col-span-1 bg-indigo-50 border border-indigo-200 rounded p-3 flex flex-col">
+                <h3 className="text-indigo-700 font-medium text-center border-b border-indigo-200 pb-1 mb-2">
+                  問題定義
+                </h3>
+                <p className="text-xs text-gray-500 mb-2 text-center">Define</p>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="define"></div>
+              </div>
+              
+              <div className="md:col-span-1 bg-purple-50 border border-purple-200 rounded p-3 flex flex-col">
+                <h3 className="text-purple-700 font-medium text-center border-b border-purple-200 pb-1 mb-2">
+                  創造
+                </h3>
+                <p className="text-xs text-gray-500 mb-2 text-center">Ideate</p>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="ideate"></div>
+              </div>
+              
+              <div className="md:col-span-1 bg-pink-50 border border-pink-200 rounded p-3 flex flex-col">
+                <h3 className="text-pink-700 font-medium text-center border-b border-pink-200 pb-1 mb-2">
+                  プロトタイプ
+                </h3>
+                <p className="text-xs text-gray-500 mb-2 text-center">Prototype</p>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="prototype"></div>
+              </div>
+              
+              <div className="md:col-span-1 bg-rose-50 border border-rose-200 rounded p-3 flex flex-col">
+                <h3 className="text-rose-700 font-medium text-center border-b border-rose-200 pb-1 mb-2">
+                  テスト
+                </h3>
+                <p className="text-xs text-gray-500 mb-2 text-center">Test</p>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="test"></div>
+              </div>
+              
+              {/* 各ステージの詳細記入欄 */}
+              <div className="md:col-span-1 bg-blue-100 border border-blue-200 rounded p-3 flex flex-col">
+                <h3 className="text-blue-700 font-medium text-center border-b border-blue-200 pb-1 mb-2">
+                  共感のための行動
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="empathize_actions"></div>
+              </div>
+              
+              <div className="md:col-span-1 bg-indigo-100 border border-indigo-200 rounded p-3 flex flex-col">
+                <h3 className="text-indigo-700 font-medium text-center border-b border-indigo-200 pb-1 mb-2">
+                  問題定義の要点
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="define_points"></div>
+              </div>
+              
+              <div className="md:col-span-1 bg-purple-100 border border-purple-200 rounded p-3 flex flex-col">
+                <h3 className="text-purple-700 font-medium text-center border-b border-purple-200 pb-1 mb-2">
+                  アイデアの評価基準
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="ideate_criteria"></div>
+              </div>
+              
+              <div className="md:col-span-1 bg-pink-100 border border-pink-200 rounded p-3 flex flex-col">
+                <h3 className="text-pink-700 font-medium text-center border-b border-pink-200 pb-1 mb-2">
+                  プロトタイプの計画
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="prototype_plan"></div>
+              </div>
+              
+              <div className="md:col-span-1 bg-rose-100 border border-rose-200 rounded p-3 flex flex-col">
+                <h3 className="text-rose-700 font-medium text-center border-b border-rose-200 pb-1 mb-2">
+                  テスト結果と改善案
+                </h3>
+                <div className="flex-grow template-dropzone pointer-events-auto" data-zone="test_results"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
 
     default:
       return null;
